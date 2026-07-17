@@ -63,6 +63,10 @@ Two configuration objects drive the dispatch in Workflow 1:
 - Interaction Profile — a routing rule. Combines global filters with one or more agent assignments and optional per-agent filters. Only enabled profiles are evaluated.
 - Agent — a connection to a cloud AI service (AWS / Azure / GCP). Has type, endpoint, credential, optional monthly duration budget. Disable to pause without losing config.
 
+## Before you start
+1. You need to add the app to your tenant first. *Cloud SRE Agents* is delivered via a so-called [Hub subscriptions](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Please send us an email to [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) including your account name and tenant ID as [outlined here](https://github.com/Dynatrace/community-examples/edit/main/dynatrace-apps/README.md).
+2. Once we have processed your request, you will receive detailed instructions on how to subscribe to the channel and install the app. 
+
 ## First 5 minutes
 *To install the app via Dynatrace Hub, you first need to subscribe your tenant to a Hub subscription. [Click here to learn more](https://github.com/Dynatrace/community-examples/tree/main/dynatrace%20apps#%E2%84%B9%EF%B8%8F-how-to-install-a-community-app-via-hub]).*
 
