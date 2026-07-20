@@ -4,9 +4,10 @@ Dynatrace Community Examples & Solutions are contributed by **Dynatrace employee
 
 > ⚠️ Community Examples & Solutions are shared as-is and are not officially maintained or supported by Dynatrace.
 
-## For Dynatrace employees
+## Contribution
 
-The full contribution process — how to submit, what's reviewed, and how publishing works — lives on the internal **Community Examples & Solutions** page (search "Community Examples & Solutions" on the internal SharePoint). Please start there; that's where submissions are handled.
+Are you interested in sharing your own example or best practice? For the time being, we're not accepting PRs from outside Dynatrace, but you can email us at [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com), and we will get in touch with you to ensure your solution makes it to this repo as well. 
+As a Dynatrace employee, please have a look at our SharePoint page **Community Examples & Solutions** page (use the search to find, or follow the link on the Product Operations page). 
 
 ## What we look for (quality bar)
 
@@ -28,7 +29,7 @@ Per category:
 
 ## Repository standards
 
-All solutions follow the **[repository standards](./STANDARDS.md)** — folder placement, naming, required files, and README format. The fastest way to get it right is to copy the **[gold-standard example](./example-entry/dashboards/order-fulfillment-observability/)**.
+All solutions follow the **[repository standards](./STANDARDS.md)** — folder placement, naming, required files, and README format. 
 
 ## Reporting an issue
 
