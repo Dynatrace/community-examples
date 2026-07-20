@@ -1,6 +1,6 @@
 # Repository Standards
 
-These standards keep the library consistent, trustworthy, and easy to maintain. Every solution in the repo follows them. When in doubt, copy the **[gold-standard example](./example-entry/dashboards/order-fulfillment-observability/)**.
+These standards keep the library consistent, trustworthy, and easy to maintain. Every solution in the repo follows them.
 
 ---
 
