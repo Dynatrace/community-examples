@@ -6,7 +6,7 @@ Full Dynatrace Apps built by the community and delivered via the Dynatrace Hub.
 
 ## Browse the apps
 
-Search the **[Dynatrace Hub](https://docs.dynatrace.com/docs/shortlink/hub)** for the current list of community apps.
+Search the **[Dynatrace Hub](https://docs.dynatrace.com/docs/shortlink/hub)** for a complete list of available community apps using the search term `community-app`.
 
 ## Getting an app
 
