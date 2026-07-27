@@ -17,5 +17,4 @@ Most apps here are delivered via the Hub using [Hub subscriptions](https://docs.
 3. **Subscribe & install** — open **Settings → General → Hub subscriptions → Add subscription**, name it, paste the channel ID, and **Save**. Then search for the app in **Hub** and install it.
 
 ## Contributing an app
-
-**Dynatrace employees:** see the internal **Community Examples & Solutions** page for the app development and release process.
+Please have a look at [this page](https://github.com/Dynatrace/community-examples/blob/main/CONTRIBUTING.md).
