@@ -97,7 +97,7 @@ Optimized for **incident response and troubleshooting**.
 
 ## 3️⃣ Account Changes Audit Dashboard
 
-![Uploading 03_Account_Changes_Audit.png…]()
+<img width="1503" height="973" alt="03_Account_Changes_Audit" src="03_Account_Changes_Audit.png" />
 
 ### 🎯 Purpose
 
