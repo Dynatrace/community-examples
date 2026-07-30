@@ -1,0 +1,182 @@
+{
+  "version": 21,
+  "variables": [],
+  "tiles": {
+    "1": {
+      "type": "markdown",
+      "content": "## DPS Cost Overview\nDPS cost trends ingested daily from the Account Management API as business events. Use the time picker to set the analysis window (e.g. this month, last 30 days). Ingested via Workflow once per Day\n\n> **Currency** defaults to USD — adjust `unitsOverrides.baseUnit` in any tile if your account currency differs."
+    },
+    "2": {
+      "type": "data",
+      "title": "Total Cost",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.total\"\n| makeTimeseries cost = sum(value), interval: 1d\n| fieldsAdd total = arraySum(cost)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "total",
+          "recordField": "total",
+          "prefixIcon": "",
+          "sparklineSettings": { "record": "cost" },
+          "trend": { "isVisible": true }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "total", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true },
+          { "identifier": "cost",  "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 1, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "3": {
+      "type": "data",
+      "title": "Avg Daily Cost",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.total\"\n| makeTimeseries cost = sum(value), interval: 1d\n| fieldsAdd avgDaily = arrayAvg(cost)",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "avgDaily",
+          "recordField": "avgDaily",
+          "prefixIcon": "",
+          "sparklineSettings": { "record": "cost" },
+          "trend": { "isVisible": true }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "avgDaily", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true },
+          { "identifier": "cost",     "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 1, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "4": {
+      "type": "data",
+      "title": "Days Tracked",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.total\"\n| summarize days = count()",
+      "visualization": "singleValue",
+      "visualizationSettings": {
+        "singleValue": {
+          "labelMode": "none",
+          "label": "days",
+          "recordField": "days",
+          "prefixIcon": "",
+          "trend": { "isVisible": false }
+        },
+        "thresholds": []
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 1, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "5": {
+      "type": "data",
+      "title": "Daily Cost Trend",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.total\"\n| makeTimeseries cost = sum(value), interval: 1d",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": true },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": { "leftAxisValues": ["cost"], "timestamp": "timeframe" }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "cost", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 100, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "6": {
+      "type": "markdown",
+      "content": "## Cost Breakdown"
+    },
+    "7": {
+      "type": "data",
+      "title": "Cost by Capability",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.capability\"\n| summarize total = sum(value), by: {capabilityName}\n| sort total desc",
+      "visualization": "categoricalBarChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false },
+          "categoricalBarChartSettings": {
+            "valueAxis": "total",
+            "valueAxisLabel": "Cost",
+            "categoryAxis": ["capabilityName"],
+            "categoryAxisLabel": "Capability"
+          }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "total", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 100, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "8": {
+      "type": "data",
+      "title": "Cost by Environment",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.environment\"\n| summarize total = sum(value), by: {environmentId}\n| sort total desc",
+      "visualization": "categoricalBarChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false },
+          "categoricalBarChartSettings": {
+            "valueAxis": "total",
+            "valueAxisLabel": "Cost",
+            "categoryAxis": ["environmentId"],
+            "categoryAxisLabel": "Environment"
+          }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "total", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 100, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "9": {
+      "type": "data",
+      "title": "Daily Cost Trend by Capability",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.capability\"\n| makeTimeseries cost = sum(value), interval: 1d, by: {capabilityName}",
+      "visualization": "lineChart",
+      "visualizationSettings": {
+        "chartSettings": {
+          "legend": { "hidden": false },
+          "xAxisLabel": "timeframe",
+          "xAxisScaling": "analyzedTimeframe",
+          "fieldMapping": { "leftAxisValues": ["cost"], "timestamp": "timeframe" }
+        },
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "cost", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 100, "defaultSamplingRatio": 10, "enableSampling": false }
+    },
+    "10": {
+      "type": "data",
+      "title": "Environment + Capability Breakdown",
+      "query": "fetch bizevents\n| filter event.type == \"dps.cost.daily.environment.capability\"\n| summarize total = sum(value), by: {environmentId, capabilityName}\n| sort total desc",
+      "visualization": "table",
+      "visualizationSettings": {
+        "thresholds": [],
+        "unitsOverrides": [
+          { "identifier": "total", "unitCategory": "currency", "baseUnit": "usd", "displayUnit": null, "decimals": 2, "suffix": "", "delimiter": true }
+        ]
+      },
+      "querySettings": { "maxResultRecords": 1000, "defaultScanLimitGbytes": 500, "maxResultMegaBytes": 100, "defaultSamplingRatio": 10, "enableSampling": false }
+    }
+  },
+  "layouts": {
+    "1":  { "x": 0,  "y": 0,  "w": 24, "h": 2 },
+    "2":  { "x": 0,  "y": 2,  "w": 8,  "h": 4 },
+    "3":  { "x": 8,  "y": 2,  "w": 8,  "h": 4 },
+    "4":  { "x": 16, "y": 2,  "w": 8,  "h": 4 },
+    "5":  { "x": 0,  "y": 6,  "w": 24, "h": 8 },
+    "6":  { "x": 0,  "y": 14, "w": 24, "h": 1 },
+    "7":  { "x": 0,  "y": 15, "w": 12, "h": 8 },
+    "8":  { "x": 12, "y": 15, "w": 12, "h": 8 },
+    "9":  { "x": 0,  "y": 23, "w": 24, "h": 8 },
+    "10": { "x": 0,  "y": 31, "w": 24, "h": 8 }
+  }
+}

@@ -5,9 +5,9 @@ A Dynatrace Automation workflow that fetches yesterday's DPS costs from the Acco
 ## What it does
 
 1. Authenticates against the Account Management API using OAuth 2.0
-2. Fetches the previous day's costs broken down by environment and capability
+2. Fetches the *previous day's* costs broken down by environment and capability
 3. Aggregates costs by capability (summed across all environments) and by environment (summed across all capabilities)
-4. Ingests three business event types into the `bizevents` table - one per capability, one per environment, one daily total
+4. Ingests four business event types into the `bizevents` table - one per capability, one per environment and capability, one per environment, one daily total
 
 **Workflow step chain:**
 
