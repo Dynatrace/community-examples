@@ -15,6 +15,17 @@ A Dynatrace Automation workflow that fetches yesterday's DPS costs from the Acco
 fetching_costs -> aggregate_data -> send_biz_events
 ```
 
+## The outcome you get
+1. With cost data in Grail - you can build Dashboards, Anomaly Alerts, Workflow 
+2. You can customize to your need and can see breakdowns beyond whats available in Account Management
+3. You can run cost analysis with DT Assist using thow business events
+
+## Good to knows before you start
+1. Data is stored in Grail - The workflow is setup to runs 1 / day 
+2. Grail data can't be overwritten - this means that if the setup is not adjusted and the workflow runs more than 1 you would have double writting.
+3. In case it happens you can adjust the naming of the event
+
+
 ## Prerequisites
 
 - An OAuth client with `account-uac-read` scope
