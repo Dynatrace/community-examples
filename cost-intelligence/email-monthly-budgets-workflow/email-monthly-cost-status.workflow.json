@@ -1,0 +1,134 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "title": "Email_Monthly_Cost_Status",
+  "description": "",
+  "actor": "00000000-0000-0000-0000-000000000000",
+  "owner": "00000000-0000-0000-0000-000000000000",
+  "ownerType": "USER",
+  "isPrivate": true,
+  "schemaVersion": 4,
+  "trigger": {},
+  "result": null,
+  "type": "STANDARD",
+  "input": {},
+  "hourlyExecutionLimit": 1000,
+  "guide": null,
+  "tasks": {
+    "budget_check": {
+      "name": "budget_check",
+      "input": {
+        "script": "import { execution } from '@dynatrace-sdk/automation-utils';\n\nconst MONTHLY_BUDGET      = 30000;  // configure: monthly cost cap in account currency\n\n// \u2500\u2500 Budget check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nfunction computeBudget(total) {\n  const pct = Math.round((total / MONTHLY_BUDGET) * 10000) / 100;\n  return { pct };\n}\n\n\n// \u2500\u2500 Email formatting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nfunction fmt(value, currency) {\n  return `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;\n}\n\nfunction formatEmail(data, budget) {\n  const { byCapability, byEnvironment, total, currency, subscriptionName, month, startLabel, endLabel } = data;\n  const { pct, status } = budget;\n\n  const capLines = Object.values(byCapability)\n    .map(({ capabilityName, value }) => `  ${fmt(value, currency).padStart(18)}  ${capabilityName}`)\n    .join('\\n');\n\n  const envLines = Object.entries(byEnvironment)\n    .map(([envId, { total: t }]) => `  ${fmt(t, currency).padStart(18)}  ${envId}`)\n    .join('\\n');\n  \n  const subject = `DPS Cost Summary ${month} \u2014 ${fmt(total, currency)}`;\n\n  const body = `DPS Monthly Cost Summary \u2014 Budget Alert from Workflow \u2014 ${month}\n${'\u2500'.repeat(52)}\nSubscription : ${subscriptionName}\nPeriod       : ${startLabel}  to  ${endLabel}\n\nMONTHLY TOTAL\n  ${fmt(total, currency)}  \n  ${pct.toFixed(1)}% of ${fmt(MONTHLY_BUDGET, currency)} budget\n\nBY ENVIRONMENT\n${envLines}\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nFor detailed drill downs you can use Dynatrace Assist, our ready-made usage dashboards and Account Management.\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nThis report was generated automatically by the DPS Budget Tracker workflow.\nFor questions contact your Dynatrace account team.`;\n\n  return { subject, body };\n}\n\n\n// \u2500\u2500 Entry point \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nexport default async function ({ executionId }) {\n  const ex = await execution(executionId);\n  const data = await ex.result('get_monthly_cost_data_overview');\n\n  const budget = computeBudget(data.total);\n  console.log(`${data.total} ${data.currency} \u2014 ${budget.pct.toFixed(1)}% of budget (${budget.status})`);\n\n  const { subject, body } = formatEmail(data, budget);\n\n  return {\n    budgetPct: budget.pct,\n    subject,\n    body,\n  };\n}\n",
+        "sdkMajorVersions": {
+          "@dynatrace-sdk/units": "1",
+          "@dynatrace-sdk/client-hub": "2",
+          "@dynatrace-sdk/client-iam": "1",
+          "@dynatrace-sdk/adhoc-utils": "1",
+          "@dynatrace-sdk/http-client": "1",
+          "@dynatrace-sdk/client-query": "1",
+          "@dynatrace-sdk/shared-errors": "1",
+          "@dynatrace-sdk/error-handlers": "1",
+          "@dynatrace-sdk/app-environment": "1",
+          "@dynatrace-sdk/client-document": "1",
+          "@dynatrace-sdk/automation-utils": "2",
+          "@dynatrace-sdk/client-synthetic": "1",
+          "@dynatrace-sdk/user-preferences": "1",
+          "@dynatrace-sdk/client-automation": "8",
+          "@dynatrace-sdk/client-hub-catalog": "0",
+          "@dynatrace-sdk/shared-client-utils": "1",
+          "@dynatrace-sdk/client-resource-store": "1",
+          "@dynatrace-sdk/client-davis-analyzers": "1",
+          "@dynatrace-sdk/client-bucket-management": "3",
+          "@dynatrace-sdk/client-app-engine-registry": "3",
+          "@dynatrace-sdk/client-classic-environment-v1": "2",
+          "@dynatrace-sdk/client-classic-environment-v2": "6",
+          "@dynatrace-sdk/client-app-engine-edge-connect": "1",
+          "@dynatrace-sdk/client-service-level-objectives": "1",
+          "@dynatrace-sdk/client-filter-segment-management": "1",
+          "@dynatrace-sdk/client-platform-management-service": "1"
+        }
+      },
+      "action": "dynatrace.automations:run-javascript",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "conditions": {
+        "states": {
+          "get_monthly_cost_data_overview": "OK"
+        }
+      },
+      "description": "customize and pre-define a budget and % to check if email should be send",
+      "predecessors": [
+        "get_monthly_cost_data_overview"
+      ]
+    },
+    "get_monthly_cost_data_overview": {
+      "name": "get_monthly_cost_data_overview",
+      "input": {
+        "script": "import { credentialVaultClient } from \"@dynatrace-sdk/client-classic-environment-v2\";\n\nconst TOKEN_URL       = 'https://sso.dynatrace.com/sso/oauth2/token';\nconst BASE_URL        = 'https://api.dynatrace.com';\nconst CREDENTIAL_NAME = 'DPS Budget Tracker OAuth';\n\n\n// \u2500\u2500 Auth \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nfunction parseCredentials(username, password) {\n  const lastDot = password.lastIndexOf('.');\n  return {\n    accountUuid: username,\n    clientId: password.substring(0, lastDot),\n    clientSecret: password,\n  };\n}\n\nasync function getOAuthToken(clientId, clientSecret, accountUuid) {\n  const resp = await fetch(TOKEN_URL, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n    body: new URLSearchParams({\n      grant_type: 'client_credentials',\n      client_id: clientId,\n      client_secret: clientSecret,\n      scope: 'account-uac-read',\n      resource: `urn:dtaccount:${accountUuid}`,\n    }),\n  });\n  if (!resp.ok) {\n    const err = await resp.json().catch(() => ({}));\n    throw new Error(`Token request failed (${resp.status}): ${err.error_description || err.error || 'unknown'}`);\n  }\n  return (await resp.json()).access_token;\n}\n\n\n// \u2500\u2500 API \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nconst RETRY_STATUSES = new Set([429, 500, 502, 503, 504]);\nconst sleep = ms => new Promise(resolve => setTimeout(resolve, ms));\n\nasync function apiGet(url, token, params = {}) {\n  const qs = new URLSearchParams(params).toString();\n  const fullUrl = qs ? `${url}?${qs}` : url;\n\n  for (let attempt = 0; attempt < 3; attempt++) {\n    const resp = await fetch(fullUrl, { headers: { Authorization: `Bearer ${token}` } });\n    if (resp.ok) return resp.json();\n    if (!RETRY_STATUSES.has(resp.status) || attempt === 2) {\n      throw new Error(`GET ${url} failed (${resp.status}): ${await resp.text()}`);\n    }\n    await sleep(2 ** attempt * 1000);\n  }\n}\n\nasync function getActiveSubscription(token, accountUuid) {\n  const data = await apiGet(`${BASE_URL}/sub/v2/accounts/${accountUuid}/subscriptions`, token);\n  const active = (data.data || []).filter(s => s.status === 'ACTIVE' && s.type === 'REGULAR');\n  if (active.length === 0) throw new Error('No active REGULAR subscription found.');\n  return active[0];\n}\n\nasync function getCostPerEnvironment(token, accountUuid, subscriptionUuid, startTime, endTime) {\n  const url = `${BASE_URL}/sub/v3/accounts/${accountUuid}/subscriptions/${subscriptionUuid}/environments/cost`;\n  let params = { startTime, endTime };\n  const results = [];\n  while (true) {\n    const body = await apiGet(url, token, params);\n    results.push(...(body.data || []));\n    if (!body.nextPageKey) break;\n    params = { ...params, 'page-key': body.nextPageKey };\n  }\n  return results;\n}\n\n\n// \u2500\u2500 Time range \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nfunction currentMonthRange() {\n  const now = new Date();\n  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));\n  const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 23, 59, 59));\n  const fmt = d => d.toISOString().replace('.000Z', 'Z');\n  return {\n    start: fmt(start),\n    end: fmt(yesterday),\n    month: start.toISOString().substring(0, 7),\n    startLabel: start.toISOString().substring(0, 10),\n    endLabel: yesterday.toISOString().substring(0, 10),\n  };\n}\n\n\n// \u2500\u2500 Aggregation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nfunction aggregate(costPerEnv) {\n  const byCapability = {};\n  const byEnvironment = {};\n  let currency = 'USD';\n  const round = v => Math.round(v * 1e6) / 1e6;\n\n  for (const env of costPerEnv) {\n    const envId = env.environmentId || env.clusterId || 'unknown';\n    if (!byEnvironment[envId]) byEnvironment[envId] = { total: 0 };\n\n    for (const { capabilityName, capabilityKey, value, currencyCode } of env.cost || []) {\n      currency = currencyCode || currency;\n      if (!byCapability[capabilityKey]) byCapability[capabilityKey] = { capabilityName, value: 0 };\n      byCapability[capabilityKey].value += value;\n      byEnvironment[envId].total += value;\n    }\n  }\n\n  for (const key of Object.keys(byCapability))  byCapability[key].value   = round(byCapability[key].value);\n  for (const id  of Object.keys(byEnvironment)) byEnvironment[id].total   = round(byEnvironment[id].total);\n\n  const total = round(Object.values(byCapability).reduce((s, c) => s + c.value, 0));\n\n  // sort descending by value for readability in the email action\n  const byCapabilitySorted = Object.fromEntries(\n    Object.entries(byCapability).sort((a, b) => b[1].value - a[1].value)\n  );\n  const byEnvironmentSorted = Object.fromEntries(\n    Object.entries(byEnvironment).sort((a, b) => b[1].total - a[1].total)\n  );\n\n  return { byCapability: byCapabilitySorted, byEnvironment: byEnvironmentSorted, total, currency };\n}\n\n\n// \u2500\u2500 Entry point \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nexport default async function ({ executionId }) {\n  const credList = await credentialVaultClient.listCredentials({ name: `\"${CREDENTIAL_NAME}\"` });\n  if (!credList || credList.totalCount === 0) {\n    throw new Error(`Credential \"${CREDENTIAL_NAME}\" not found.`);\n  }\n  const creds = await credentialVaultClient.getCredentialsDetails({ id: credList.credentials[0].id });\n  const { accountUuid, clientId, clientSecret } = parseCredentials(creds.username, creds.password);\n\n  const token = await getOAuthToken(clientId, clientSecret, accountUuid);\n  const subscription = await getActiveSubscription(token, accountUuid);\n\n  const range = currentMonthRange();\n  console.log(`Fetching monthly costs for ${range.month} (${range.startLabel} to ${range.endLabel})`);\n\n  const costPerEnv = await getCostPerEnvironment(token, accountUuid, subscription.uuid, range.start, range.end);\n  const summary = aggregate(costPerEnv);\n\n  console.log(`Total: ${summary.total} ${summary.currency}`);\n\n  return {\n    month: range.month,\n    startLabel: range.startLabel,\n    endLabel: range.endLabel,\n    subscriptionName: subscription.name,\n    total: summary.total,\n    currency: summary.currency,\n    byCapability: summary.byCapability,\n    byEnvironment: summary.byEnvironment,\n  };\n}\n",
+        "sdkMajorVersions": {
+          "@dynatrace-sdk/units": "1",
+          "@dynatrace-sdk/client-hub": "2",
+          "@dynatrace-sdk/client-iam": "1",
+          "@dynatrace-sdk/adhoc-utils": "1",
+          "@dynatrace-sdk/http-client": "1",
+          "@dynatrace-sdk/client-query": "1",
+          "@dynatrace-sdk/shared-errors": "1",
+          "@dynatrace-sdk/error-handlers": "1",
+          "@dynatrace-sdk/app-environment": "1",
+          "@dynatrace-sdk/client-document": "1",
+          "@dynatrace-sdk/automation-utils": "2",
+          "@dynatrace-sdk/client-synthetic": "1",
+          "@dynatrace-sdk/user-preferences": "1",
+          "@dynatrace-sdk/client-automation": "8",
+          "@dynatrace-sdk/client-hub-catalog": "0",
+          "@dynatrace-sdk/shared-client-utils": "1",
+          "@dynatrace-sdk/client-resource-store": "1",
+          "@dynatrace-sdk/client-davis-analyzers": "1",
+          "@dynatrace-sdk/client-bucket-management": "3",
+          "@dynatrace-sdk/client-app-engine-registry": "3",
+          "@dynatrace-sdk/client-classic-environment-v1": "2",
+          "@dynatrace-sdk/client-classic-environment-v2": "6",
+          "@dynatrace-sdk/client-app-engine-edge-connect": "1",
+          "@dynatrace-sdk/client-service-level-objectives": "1",
+          "@dynatrace-sdk/client-filter-segment-management": "1",
+          "@dynatrace-sdk/client-platform-management-service": "1"
+        }
+      },
+      "action": "dynatrace.automations:run-javascript",
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "description": "gets costs for current month - total, per environment, per capability",
+      "predecessors": []
+    },
+    "send_summary_email_greater80percent": {
+      "name": "send_summary_email_greater80percent",
+      "input": {
+        "cc": [],
+        "to": [
+          "example@example.com"
+        ],
+        "bcc": [],
+        "content": " {{ result(\"budget_check\").body }}",
+        "subject": "{{ result(\"budget_check\").subject }}"
+      },
+      "action": "dynatrace.email:send-email",
+      "position": {
+        "x": 0,
+        "y": 3
+      },
+      "conditions": {
+        "custom": "{{ result(\"budget_check\").get(\"budgetPct\", 0) >= 80 }}",
+        "states": {
+          "budget_check": "OK"
+        }
+      },
+      "description": "Send email",
+      "predecessors": [
+        "budget_check"
+      ]
+    }
+  }
+}
