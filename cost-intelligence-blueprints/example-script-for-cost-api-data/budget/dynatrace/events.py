@@ -14,7 +14,7 @@ def send_biz_events(environment_url: str, api_token: str, events: list[dict]) ->
         "Authorization": f"Api-Token {api_token}",
         "Content-Type": "application/json",
     }
-    resp = requests.post(url, headers=headers, json=events)
+    resp = requests.post(url, headers=headers, json=events, timeout=30)
     resp.raise_for_status()
 
 

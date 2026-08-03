@@ -48,7 +48,7 @@ Adjust these values in `email-monthly-cost-status.workflow.json` before importin
 
 | Constant | Default | Description |
 |---|---|---|
-| `MONTHLY_BUDGET` | `50000` | Your monthly cost cap in account currency |
+| `MONTHLY_BUDGET` | `30000` | Your monthly cost cap in account currency |
 
 **In the `send_summary_email` step:**
 

@@ -69,7 +69,7 @@ Each step depends strictly on the previous one completing successfully.
 
 ## 3. Data Available
 
-The daily ingestion workflow writes three event types to biz events (`bizevents` table in DQL), each produced once per day:
+The daily ingestion workflow writes four event types to biz events (`bizevents` table in DQL), each produced once per day:
 
 ### `dps.cost.daily.capability`
 

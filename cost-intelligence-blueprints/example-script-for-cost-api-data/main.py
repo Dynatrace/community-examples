@@ -16,8 +16,9 @@ RESULTS_DIR = Path("results")
 
 
 def save(filename: str, data) -> None:
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path = RESULTS_DIR / filename
-    path.write_text(json.dumps(data, indent=2))
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     print(f"  -> saved {path}")
 
 
@@ -26,7 +27,7 @@ def main():
     client_secret = os.environ["DT_CLIENT_SECRET"]
     account_uuid = os.environ["DT_ACCOUNT_UUID"]
     subscription_uuid = os.environ.get("DT_SUBSCRIPTION_UUID")
-    monthly_budget = float(os.environ.get("DT_MONTHLY_BUDGET", 0))
+    monthly_budget = float(os.environ.get("DT_MONTHLY_BUDGET") or 0)
     environment_url = os.environ.get("DT_ENVIRONMENT_URL")
     ingest_token = os.environ.get("DT_INGEST_TOKEN")
     event_bucket = os.environ.get("DT_EVENT_BUCKET")  # optional restricted bucket
@@ -48,7 +49,7 @@ def main():
             print("\nSet DT_SUBSCRIPTION_UUID in .env to pick one.")
             return
         subscription_uuid = subscriptions[0]["uuid"]
-        client._subscription = subscription_uuid
+        client = DynatraceClient(account_uuid, token, subscription_uuid)
         print(f"Using subscription: {subscriptions[0]['name']} ({subscription_uuid})\n")
 
     # Subscription detail

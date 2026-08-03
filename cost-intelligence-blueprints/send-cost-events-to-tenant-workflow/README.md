@@ -16,14 +16,14 @@ fetching_costs -> aggregate_data -> send_biz_events
 ```
 
 ## The outcome you get
-1. With cost data in Grail - you can build Dashboards, Anomaly Alerts, Workflow 
-2. You can customize to your need and can see breakdowns beyond whats available in Account Management
-3. You can run cost analysis with DT Assist using thow business events
+1. With cost data in Grail, you can build dashboards, anomaly alerts, and workflows.
+2. You can customize the schema to fit your needs and see breakdowns beyond what's available in Account Management.
+3. You can run cost analysis with Dynatrace Assist using these business events.
 
 ## Good to knows before you start
-1. Data is stored in Grail - The workflow is setup to runs 1 / day 
-2. Grail data can't be overwritten - this means that if the setup is not adjusted and the workflow runs more than 1 you would have double writting.
-3. In case it happens you can adjust the naming of the event
+1. Data is stored in Grail - the workflow is set up to run once per day.
+2. Grail data can't be overwritten - if the workflow runs more than once for the same day, events will be written twice.
+3. If that happens you can adjust the naming of the event to differentiate runs.
 
 
 ## Prerequisites

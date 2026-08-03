@@ -11,8 +11,8 @@ A Dynatrace Automation workflow that fetches month-to-date DPS costs from the Ac
 The email step is conditional - the threshold percentage is configured directly on the workflow step condition, not in the script. If month-to-date spend is below the threshold, the workflow completes without sending anything.
 
 ## The outcome you get
-1. With cost data beeing part of the workflow, you can set up you own alerting to your needs 
-2. You can set mulitple budget limits, and distribute in your organization
+1. With cost data as part of the workflow, you can set up alerting tailored to your needs.
+2. You can set multiple budget limits and distribute them across your organization.
 
 ## Potential further iterations
 1. You can adjust budget, %, multi-alerting
