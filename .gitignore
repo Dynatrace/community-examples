@@ -1,1 +1,28 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# Secrets & local config
+.env
+*.tfvars
+
+# Runtime output
+results/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Node
+node_modules/
