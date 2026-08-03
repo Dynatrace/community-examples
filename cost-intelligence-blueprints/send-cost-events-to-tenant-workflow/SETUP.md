@@ -27,7 +27,7 @@ This approaches authenticate against the Account Management API using OAuth 2.0 
 
 The workflows retrieve the OAuth credentials at runtime from the Credential Vault - no hardcoded secrets in the workflow code.
 
-**Where:** Your Dynatrace environment - Automation - Credentials - New credential
+**Where:** Your Dynatrace environment - Credential vault -  Add new credential
 
 | Field | Value |
 |---|---|
@@ -54,8 +54,9 @@ Two workflow templates are provided in `templates/`:
 
 1. Dynatrace - Automation - Workflows - Upload
 2. Select the `.workflow.json` file
-3. After import, open the workflow and verify the trigger schedule matches your preference
-4. Run once manually to confirm all steps pass
+3. After import, run once manually to confirm all steps pass.
+4. Use queries below in a notebook to see data, Adjust month to your current month.
+5. If succeeded, open the workflow and adjust the trigger schedule. Set schedule to once per day starting the next day.
 
 **Daily ingestion workflow - step chain:**
 
@@ -69,7 +70,8 @@ Each step depends strictly on the previous one completing successfully.
 
 ## 3. Data Available
 
-The daily ingestion workflow writes four event types to biz events (`bizevents` table in DQL), each produced once per day:
+The daily ingestion workflow writes four event types to biz events (`bizevents` table in DQL), each produced once per day.
+All event types are part of `event.provider == "dps.budget.tracker"`
 
 ### `dps.cost.daily.capability`
 

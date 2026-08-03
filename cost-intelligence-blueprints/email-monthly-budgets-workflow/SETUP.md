@@ -27,7 +27,7 @@ This workflow authenticates against the Account Management API using OAuth 2.0 c
 
 The workflow retrieves OAuth credentials at runtime from the Credential Vault - no hardcoded secrets in the workflow code.
 
-**Where:** Your Dynatrace environment - Automation - Credentials - New credential
+**Where:** Your Dynatrace environment - Credential vault -  Add new credential
 
 | Field | Value |
 |---|---|
