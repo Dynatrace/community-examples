@@ -41,7 +41,7 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
     def base(event_type: str) -> dict:
         e = {
             "event.type": event_type,
-            "event.provider": "dps.budget.tracker",
+            "event.provider": "dps.costs.monthly",
             "month": month,
             "currencyCode": currency,
         }
@@ -65,8 +65,17 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
         e["value"] = round(env_data["total"], 6)
         events.append(e)
 
+    # One event per environment per capability
+    for env_id, env_data in summary["by_environment"].items():
+        for capability_name, value in env_data["by_capability"].items():
+            e = base("dps.cost.monthly.environment.capability")
+            e["environmentId"] = env_id
+            e["capabilityName"] = capability_name
+            e["value"] = round(value, 6)
+            events.append(e)
+
     # Budget status event
-    e = base("dps.cost.monthly.budget")
+    e = base("dps.cost.current.month")
     e["total"] = round(total, 6)
     e["budgetLimit"] = monthly_budget
     e["budgetStatus"] = budget_status

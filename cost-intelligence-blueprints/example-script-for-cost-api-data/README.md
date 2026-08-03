@@ -42,6 +42,7 @@ When `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` are set, the script sends three 
 |---|---|---|
 | `dps.cost.monthly.capability` | One per capability | `capabilityName`, `value` |
 | `dps.cost.monthly.environment` | One per environment | `environmentId`, `value` |
+| `dps.cost.monthly.environment.capability` | One per environment per capability | `environmentId`, `capabilityName`, `value` |
 | `dps.cost.monthly.budget` | One overall | `total`, `budgetLimit`, `budgetStatus`, `budgetPct` |
 
 All events include `month` (e.g. `2026-07`) and `currencyCode`.
