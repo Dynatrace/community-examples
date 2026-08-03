@@ -1,3 +1,14 @@
+---
+title: Send Cost Events to Tenant
+category: Blueprints
+type: Blueprint
+tags: [cost-intelligence, dps, business-events, grail, account-management-api]
+capabilities: [Automation Workflows, Business Events, Grail, Account Management API]
+author: Benno Grottenegg
+contact: "@benno.grottenegg (Slack)"
+last_updated: 2026-08-03
+---
+
 # Send Cost Events to Tenant
 
 A Dynatrace Automation workflow that fetches yesterday's DPS costs from the Account Management API and ingests them as business events into your Dynatrace tenant - enabling cost trend analysis, dashboards, and alerting via DQL.

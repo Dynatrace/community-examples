@@ -1,3 +1,14 @@
+---
+title: Email Monthly Cost Status
+category: Blueprints
+type: Blueprint
+tags: [cost-intelligence, dps, budget-alerting, email, account-management-api]
+capabilities: [Automation Workflows, Account Management API]
+author: Benno Grottenegg
+contact: "@benno.grottenegg (Slack)"
+last_updated: 2026-08-03
+---
+
 # Email Monthly Cost Status
 
 A Dynatrace Automation workflow that fetches month-to-date DPS costs from the Account Management API and sends a formatted email summary when spend reaches a configurable percentage of your monthly budget.

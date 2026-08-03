@@ -1,3 +1,14 @@
+---
+title: Python Script - Cost Data from Account Management API
+category: Blueprints
+type: Blueprint
+tags: [cost-intelligence, dps, python, business-events, account-management-api]
+capabilities: [Business Events, Grail, Account Management API]
+author: Benno Grottenegg
+contact: "@benno.grottenegg (Slack)"
+last_updated: 2026-08-03
+---
+
 # Python Script - Cost Data from Account Management API
 
 A local Python script that fetches DPS cost data from the Dynatrace Account Management API, prints a structured summary to the terminal, and optionally sends business events to your Dynatrace tenant for trend analysis and alerting.

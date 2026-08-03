@@ -2,7 +2,7 @@
 
 Deploy the Dynatrace Automation workflows for scheduled daily cost ingestion and monthly email reporting.
 
-Before continuing, complete the [OAuth client setup](../README.md#prerequisite-oauth-client) in the root README.
+See [README.md](README.md) for an overview of the blueprint before starting setup.
 
 ---
 
@@ -42,7 +42,7 @@ No ingest token is required. The workflows use the built-in `businessEventsClien
 
 ---
 
-## 2. Import Workflows
+## 3. Import Workflows
 
 Two workflow templates are provided in `templates/`:
 

@@ -55,7 +55,7 @@ cp .env.example .env
 ## 4. Run
 
 ```bash
-python main.py
+python3 main.py
 ```
 
 The script will:

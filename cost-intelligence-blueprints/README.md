@@ -4,6 +4,15 @@ End-to-end solutions for DPS cost visibility, budget alerting, and cost optimiza
 
 Each blueprint is self-contained in its own subfolder with a README explaining what it does and a SETUP.md with step-by-step instructions.
 
+## How they fit together
+
+The recommended combination is: 
+- use the **daily workflow** to continuously collect cost data into Grail, perfect for longer lasting budget tracking / Dashboarding / Alerting 
+- use the **email workflow** to stay on top of budget thresholds
+- use the **Python script** to bring cost events into your FinOps or data lake stack or directly into Grail - easy to adjust for longer historic timeperiods.
+  
+Each blueprint works independently — start with whichever fits your immediate need.
+
 ## Blueprints
 
 | Blueprint | What it does |
