@@ -81,43 +81,50 @@ fetch bizevents
 | sort timestamp desc
 ```
 
-**Monthly totals by capability:**
+Each event includes a `runId` (ISO timestamp of the script run). If you run the script multiple times for the same month, filter to the latest `runId` to avoid double-counting on dashboards.
+
+**Monthly totals by capability (latest run only):**
 ```dql
 fetch bizevents
 | filter event.provider == "dps.cost.current.month"
   and event.type == "dps.cost.monthly.capability"
   and month == "2026-07"
-| fields capabilityName, value, currencyCode
+| sort runId desc
+| summarize value = takefirst(value), by: {capabilityName, currencyCode}
 | sort value desc
 ```
 
-**Monthly totals by environment:**
+**Monthly totals by environment (latest run only):**
 ```dql
 fetch bizevents
 | filter event.provider == "dps.cost.current.month"
   and event.type == "dps.cost.monthly.environment"
   and month == "2026-07"
-| fields environmentId, value, currencyCode
+| sort runId desc
+| summarize value = takefirst(value), by: {environmentId, currencyCode}
 | sort value desc
 ```
 
-**Capability breakdown per environment:**
+**Capability breakdown per environment (latest run only):**
 ```dql
 fetch bizevents
 | filter event.provider == "dps.cost.current.month"
   and event.type == "dps.cost.monthly.environment.capability"
   and month == "2026-07"
-| fields environmentId, capabilityName, value, currencyCode
+| sort runId desc
+| summarize value = takefirst(value), by: {environmentId, capabilityName, currencyCode}
 | sort value desc
 ```
 
-**Budget status:**
+**Budget status (latest run only):**
 ```dql
 fetch bizevents
 | filter event.provider == "dps.cost.current.month"
   and event.type == "dps.cost.monthly.budget"
-| fields month, total, budgetLimit, budgetStatus, budgetPct, currencyCode
-| sort timestamp desc
+  and month == "2026-07"
+| sort runId desc
+| limit 1
+| fields month, total, budgetLimit, budgetStatus, budgetPct, currencyCode, runId
 ```
 
 Replace `2026-07` with the current year-month.

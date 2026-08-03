@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -17,7 +18,7 @@ def send_biz_events(environment_url: str, api_token: str, events: list[dict]) ->
     resp.raise_for_status()
 
 
-def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optional[str] = None) -> list[dict]:
+def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optional[str] = None, run_id: Optional[str] = None) -> list[dict]:
     """Build the full set of biz events from an aggregated monthly summary.
 
     Produces:
@@ -30,6 +31,7 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
     currency = summary["currency"]
     total = summary["total"]
     pct = (total / monthly_budget * 100) if monthly_budget else None
+    run_id = run_id or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if monthly_budget and total > monthly_budget:
         budget_status = "OVER_BUDGET"
@@ -44,6 +46,7 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
             "event.provider": "dps.cost.current.month",
             "month": month,
             "currencyCode": currency,
+            "runId": run_id,
         }
         if bucket:
             e["dt.system.bucket"] = bucket
