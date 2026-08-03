@@ -1,0 +1,165 @@
+{
+  "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "type": "REGULAR",
+  "subType": null,
+  "name": "My DPS Subscription",
+  "status": "ACTIVE",
+  "startTime": "2025-07-22",
+  "endTime": "2026-07-22",
+  "account": {
+    "uuid": "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+  },
+  "budget": {
+    "total": 500000,
+    "used": 430759.16562384,
+    "currencyCode": "USD"
+  },
+  "currentPeriod": {
+    "startTime": "2025-07-22",
+    "endTime": "2026-07-21",
+    "daysRemaining": 1
+  },
+  "periods": [],
+  "capabilities": [
+    {
+      "key": "AUTOMATIONS",
+      "name": "Automation Workflow"
+    },
+    {
+      "key": "BUSINESS_EVENTS_ANALYZE",
+      "name": "Events - Query"
+    },
+    {
+      "key": "BUSINESS_EVENTS_INGEST",
+      "name": "Events - Ingest & Process"
+    },
+    {
+      "key": "BUSINESS_EVENTS_RETAIN",
+      "name": "Events - Retain"
+    },
+    {
+      "key": "CODE_MONITORING",
+      "name": "Code Monitoring"
+    },
+    {
+      "key": "COMPUTE",
+      "name": "AppEngine Functions - Small"
+    },
+    {
+      "key": "EVENTS",
+      "name": "Custom Events Classic"
+    },
+    {
+      "key": "FOUNDATION_AND_DISCOVERY",
+      "name": "Foundation & Discovery"
+    },
+    {
+      "key": "FULLSTACK_MONITORING",
+      "name": "Full-Stack Monitoring"
+    },
+    {
+      "key": "INFRASTRUCTURE_MONITORING",
+      "name": "Infrastructure Monitoring"
+    },
+    {
+      "key": "KUBERNETES_OPERATIONS",
+      "name": "Kubernetes Platform Monitoring"
+    },
+    {
+      "key": "LOGS",
+      "name": "Log Monitoring Classic"
+    },
+    {
+      "key": "LOG_MANAGEMENT_ANALYZE",
+      "name": "Log Management & Analytics - Query"
+    },
+    {
+      "key": "LOG_MANAGEMENT_INGEST",
+      "name": "Log Management & Analytics - Ingest & Process"
+    },
+    {
+      "key": "LOG_MANAGEMENT_RETAIN",
+      "name": "Log Management & Analytics - Retain"
+    },
+    {
+      "key": "LOG_MANAGEMENT_RETAIN_QUERY_INCLUDED",
+      "name": "Log Management & Analytics - Retain with Included Queries"
+    },
+    {
+      "key": "MAINFRAME_MONITORING",
+      "name": "Mainframe Monitoring"
+    },
+    {
+      "key": "METRICS",
+      "name": "Custom Metrics Classic"
+    },
+    {
+      "key": "METRICS_EXTENDED_RETAIN",
+      "name": "Metrics - Retain"
+    },
+    {
+      "key": "METRICS_INGEST",
+      "name": "Metrics - Ingest & Process"
+    },
+    {
+      "key": "METRICS_QUERY",
+      "name": "Metrics - Query"
+    },
+    {
+      "key": "RUNTIME_APPLICATION_PROTECTION",
+      "name": "Runtime Application Protection"
+    },
+    {
+      "key": "RUNTIME_VULNERABILITY_ANALYTICS",
+      "name": "Runtime Vulnerability Analytics"
+    },
+    {
+      "key": "SECURITY_POSTURE_MANAGEMENT",
+      "name": "Security Posture Management"
+    },
+    {
+      "key": "SERVERLESS",
+      "name": "Serverless Functions Classic"
+    },
+    {
+      "key": "SYNTHETIC_MONITORING_BROWSER",
+      "name": "Browser Monitor or Clickpath"
+    },
+    {
+      "key": "SYNTHETIC_MONITORING_HTTP",
+      "name": "HTTP Monitor"
+    },
+    {
+      "key": "SYNTHETIC_MONITORING_THIRD_PARTY",
+      "name": "Third-Party Synthetic API Ingestion"
+    },
+    {
+      "key": "TRACES",
+      "name": "Custom Traces Classic"
+    },
+    {
+      "key": "TRACE_INGEST",
+      "name": "Traces - Ingest & Process"
+    },
+    {
+      "key": "TRACE_QUERY",
+      "name": "Traces - Query"
+    },
+    {
+      "key": "TRACE_RETAIN",
+      "name": "Traces - Retain"
+    },
+    {
+      "key": "USER_SESSIONS",
+      "name": "Real User Monitoring"
+    },
+    {
+      "key": "USER_SESSION_PROPERTIES",
+      "name": "Real User Monitoring Property"
+    },
+    {
+      "key": "USER_SESSION_REPLAYS",
+      "name": "Real User Monitoring with Session Replay"
+    }
+  ]
+}
