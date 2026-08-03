@@ -23,6 +23,7 @@ The repository is organized by artifact category. Each folder has its own README
 | [`configuration-as-code/`](./configuration-as-code) | ⚙️ **Configuration as Code** | Monaco / Terraform examples for automating configuration management. |
 | [`dynatrace-apps/`](./dynatrace-apps) | 🧩 **Apps** | An **index** of full Dynatrace Apps (AI workflow connectors, CI/CD Observability, Cloud SRE Agents). Consumers install these via the **Hub**, not from this repo — each entry links to its Hub listing. |
 | [`observability-blueprints/`](./observability-blueprints) | 🗺 **Observability Blueprints** | End-to-end reference setups that combine multiple artifacts into a complete solution for a scenario. |
+| [`cost-intelligence-blueprints/`](./cost-intelligence-blueprints) | 💰 **Cost Intelligence Blueprints** | End-to-end solutions for DPS cost visibility, budget alerting, and cost optimization using the Account Management API, workflows, and Grail. |
 
 > Dashboards, notebooks, and launchpads each have their own folder. A solution that combines several (e.g. a dashboard that drills into a notebook) lives under its **primary** artifact, with the other pieces in the same subfolder.
 
