@@ -41,7 +41,7 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
     def base(event_type: str) -> dict:
         e = {
             "event.type": event_type,
-            "event.provider": "dps.costs.monthly",
+            "event.provider": "dps.cost.current.month",
             "month": month,
             "currencyCode": currency,
         }
@@ -75,7 +75,7 @@ def build_events(summary: dict, month: str, monthly_budget: float, bucket: Optio
             events.append(e)
 
     # Budget status event
-    e = base("dps.cost.current.month")
+    e = base("dps.cost.monthly.budget")
     e["total"] = round(total, 6)
     e["budgetLimit"] = monthly_budget
     e["budgetStatus"] = budget_status

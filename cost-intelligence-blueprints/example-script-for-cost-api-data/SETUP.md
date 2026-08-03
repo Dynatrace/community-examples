@@ -69,7 +69,62 @@ The script will:
 
 ---
 
-## 5. Output files
+## 5. Verify Results
+
+If `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` are set, the script sends business events to your tenant. Use these DQL queries in Dynatrace Notebooks or the DQL editor to confirm the data arrived.
+
+**See all events sent by this script:**
+```dql
+fetch bizevents
+| filter event.provider == "dps.cost.current.month"
+| fields event.type, month, currencyCode, timestamp
+| sort timestamp desc
+```
+
+**Monthly totals by capability:**
+```dql
+fetch bizevents
+| filter event.provider == "dps.cost.current.month"
+  and event.type == "dps.cost.monthly.capability"
+  and month == "2026-07"
+| fields capabilityName, value, currencyCode
+| sort value desc
+```
+
+**Monthly totals by environment:**
+```dql
+fetch bizevents
+| filter event.provider == "dps.cost.current.month"
+  and event.type == "dps.cost.monthly.environment"
+  and month == "2026-07"
+| fields environmentId, value, currencyCode
+| sort value desc
+```
+
+**Capability breakdown per environment:**
+```dql
+fetch bizevents
+| filter event.provider == "dps.cost.current.month"
+  and event.type == "dps.cost.monthly.environment.capability"
+  and month == "2026-07"
+| fields environmentId, capabilityName, value, currencyCode
+| sort value desc
+```
+
+**Budget status:**
+```dql
+fetch bizevents
+| filter event.provider == "dps.cost.current.month"
+  and event.type == "dps.cost.monthly.budget"
+| fields month, total, budgetLimit, budgetStatus, budgetPct, currencyCode
+| sort timestamp desc
+```
+
+Replace `2026-07` with the current year-month.
+
+---
+
+## 6. Output files
 
 Raw API responses and the aggregated summary are saved to `results/` (gitignored - not committed):
 
