@@ -1,0 +1,11 @@
+[
+  {
+    "uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "type": "REGULAR",
+    "subType": null,
+    "name": "My DPS Subscription",
+    "status": "ACTIVE",
+    "startTime": "2025-07-22",
+    "endTime": "2026-07-21"
+  }
+]

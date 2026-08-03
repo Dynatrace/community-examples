@@ -1,0 +1,78 @@
+{
+  "by_capability": {
+    "Log Management & Analytics - Ingest & Process": 25304.831999999995,
+    "Log Management & Analytics - Query": 10157.73878,
+    "Log Management & Analytics - Retain": 6108.424250879999,
+    "Real User Monitoring with Session Replay": 3849.8832,
+    "Automation Workflow": 3639.24,
+    "Browser Monitor or Clickpath": 3253.2288000000003,
+    "Metrics - Ingest & Process": 2691.2936316000005,
+    "Events - Query": 1961.0712967999998,
+    "Real User Monitoring": 1802.1192,
+    "Full-Stack Monitoring": 1686.8405040000007,
+    "Traces - Query": 511.8429064,
+    "AppEngine Functions - Small": 417.07759999999996,
+    "Runtime Vulnerability Analytics": 254.07551339999998,
+    "Log Management & Analytics - Retain with Included Queries": 203.13832,
+    "Runtime Application Protection": 158.38729019999997,
+    "Code Monitoring": 99.86700000000002,
+    "Traces - Ingest & Process": 76.81775999999999,
+    "HTTP Monitor": 74.77801999999998,
+    "Real User Monitoring Property": 69.16416,
+    "Kubernetes Platform Monitoring": 67.48400000000002,
+    "Mainframe Monitoring": 63.09504,
+    "Traces - Retain": 57.25205640000001,
+    "Metrics - Retain": 53.57746407999999,
+    "Security Posture Management": 40.376,
+    "Events - Ingest & Process": 30.45680000000001,
+    "Infrastructure Monitoring": 14.592000000000004,
+    "Events - Retain": 4.8393884,
+    "Foundation & Discovery": 3.648000000000001
+  },
+  "by_environment": {
+    "def67890": {
+      "by_capability": {
+        "Log Management & Analytics - Ingest & Process": 25304.831999999995,
+        "Log Management & Analytics - Query": 10157.73878,
+        "Log Management & Analytics - Retain": 6108.424250879999,
+        "Real User Monitoring with Session Replay": 3849.8832,
+        "Automation Workflow": 3639.24,
+        "Browser Monitor or Clickpath": 3253.2288000000003,
+        "Metrics - Ingest & Process": 2691.2936316000005,
+        "Events - Query": 1961.0712967999998,
+        "Real User Monitoring": 1802.1192,
+        "Full-Stack Monitoring": 1664.952504,
+        "Traces - Query": 511.8429064,
+        "AppEngine Functions - Small": 417.07759999999996,
+        "Runtime Vulnerability Analytics": 249.1507134,
+        "Log Management & Analytics - Retain with Included Queries": 203.13832,
+        "Runtime Application Protection": 158.38729019999997,
+        "Code Monitoring": 99.86700000000002,
+        "Traces - Ingest & Process": 76.81775999999999,
+        "HTTP Monitor": 74.77801999999998,
+        "Real User Monitoring Property": 69.16416,
+        "Kubernetes Platform Monitoring": 67.48400000000002,
+        "Mainframe Monitoring": 63.09504,
+        "Traces - Retain": 57.25205640000001,
+        "Metrics - Retain": 53.57746407999999,
+        "Security Posture Management": 40.376,
+        "Events - Ingest & Process": 30.453760000000003,
+        "Infrastructure Monitoring": 14.592000000000004,
+        "Events - Retain": 4.837577919999999,
+        "Foundation & Discovery": 3.648000000000001
+      },
+      "total": 62628.32333167999
+    },
+    "abc12345": {
+      "by_capability": {
+        "Full-Stack Monitoring": 21.888,
+        "Runtime Vulnerability Analytics": 4.9247999999999985,
+        "Events - Ingest & Process": 0.00304,
+        "Events - Retain": 0.00181048
+      },
+      "total": 26.81765048
+    }
+  },
+  "total": 62655.14098215998,
+  "currency": "USD"
+}
