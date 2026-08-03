@@ -36,7 +36,7 @@ See [SETUP.md](SETUP.md) for step-by-step instructions.
 
 ## Events written (optional)
 
-When `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` are set, the script sends three event types:
+When `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` are set, the script sends four event types:
 
 | Event type | Granularity | Key fields |
 |---|---|---|
@@ -45,4 +45,12 @@ When `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` are set, the script sends three 
 | `dps.cost.monthly.environment.capability` | One per environment per capability | `environmentId`, `capabilityName`, `value` |
 | `dps.cost.monthly.budget` | One overall budget status | `total`, `budgetLimit`, `budgetStatus`, `budgetPct` |
 
-All events include `month` (e.g. `2026-07`) and `currencyCode`.
+All events include `month` (e.g. `2026-07`), `currencyCode`, and `runId`.
+
+## Example dashboard
+
+An example dashboard template is included in `example-dashboard-template/Current-Month-DPS-Budget-Tracker.json`. It visualizes the current month's cost breakdown by capability and environment using the business events sent by this script.
+
+![Example dashboard](Example_Dashboard_build_with_cost-data.png)
+
+See [SETUP.md](SETUP.md) for import instructions.

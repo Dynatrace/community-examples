@@ -10,7 +10,7 @@ Each blueprint is self-contained in its own subfolder with a README explaining w
 |---|---|
 | [`send-cost-events-to-tenant-workflow/`](./send-cost-events-to-tenant-workflow/) | Daily workflow that ingests yesterday's DPS costs as business events into Grail for trend analysis, dashboards, and alerting |
 | [`email-monthly-budgets-workflow/`](./email-monthly-budgets-workflow/) | Monthly workflow that sends a cost summary email when spend crosses a configurable budget threshold |
-| [`example-script-for-cost-api-data/`](./example-script-for-cost-api-data/) | Local Python script for on-demand cost exploration — prints a summary, checks budget, and optionally sends business events to your tenant |
+| [`example-script-for-cost-api-data/`](./example-script-for-cost-api-data/) | Local Python script for on-demand cost exploration — prints a summary, checks budget, optionally sends business events to your tenant, and includes an example dashboard template |
 
 ## Prerequisites shared across blueprints
 

@@ -131,7 +131,21 @@ Replace `2026-07` with the current year-month.
 
 ---
 
-## 6. Output files
+## 6. Import example dashboard
+
+An example dashboard template is provided in `example-dashboard-template/Current-Month-DPS-Budget-Tracker.json`. It visualizes the current month's cost breakdown by capability and environment using the business events sent by this script.
+
+**Prerequisites:** complete step 4 (Run) with `DT_ENVIRONMENT_URL` and `DT_INGEST_TOKEN` set so events exist in Grail before importing.
+
+**Import steps:**
+
+1. Dynatrace - Dashboards - Upload
+2. Select `example-dashboard-template/Current-Month-DPS-Budget-Tracker.json`
+3. The dashboard reads from `event.provider == "dps.cost.current.month"` — no additional configuration needed
+
+---
+
+## 7. Output files
 
 Raw API responses and the aggregated summary are saved to `results/` (gitignored - not committed):
 
