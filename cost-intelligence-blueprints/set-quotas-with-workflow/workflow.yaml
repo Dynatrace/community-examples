@@ -58,8 +58,8 @@ workflow:
           \ execution(executionId)\n  const checkForLogQuotaResult = await ex.result('check_for_log_quota');\n\
           \  const emails = checkForLogQuotaResult.records.map((item) => item.email);\n\
           \  \n  const credentialsList = await credentialVaultClient.listCredentials({\n\
-          \    name: '\"Quota check OAuth\"'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
-          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth was\
+          \    name: 'Quota check OAuth'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
+          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth\" was\
           \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
           \  const credentialId = await (credentialsList.credentials.find(item =>\
           \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
@@ -162,8 +162,8 @@ workflow:
           \ new Error(result);\n  }\n  if (method == \"GET\") {\n    const result\
           \ = await response.json();\n    return result;\n  }\n}\n\nexport default\
           \ async function() {\n  const credentialsList = await credentialVaultClient.listCredentials({\n\
-          \    name: '\"Quota check OAuth\"'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
-          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth was\
+          \    name: 'Quota check OAuth'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
+          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth\" was\
           \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
           \  const credentialId = await (credentialsList.credentials.find(item =>\
           \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\

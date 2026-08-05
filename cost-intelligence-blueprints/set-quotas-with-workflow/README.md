@@ -71,7 +71,7 @@ The following values can be adjusted without changing the workflow code:
 
 | What | Where | Default |
 |------|-------|---------|
-| Daily log-query quota | `check_for_log_quota` task — edit the `filter query_volume >` line | `10 * 1024^4` (10 TB) |
+| Daily log-query quota | `check_for_log_quota` task — edit the `filter query_volume >` line | `10 * 1024 * 1024 * 1024 * 1024` (10 TB) |
 | Reset time | `quota_reset_at_midnight` step condition | `00:00` UTC |
 | Notification email text | `send_email_about_log_quota` task — `content` field | See workflow |
 
