@@ -70,8 +70,8 @@ workflow:
           \ exceeded\");\n  if (!group) {\n    throw new Error('No user group with\
           \ the name \"Quota exceeded\" was found - please create this first in the\
           \ account management portal.');\n  }\n  await Promise.all(emails.map(email =>\n\
-          \    get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/users/\" + email + \"/groups\",\
-          \ token, \"POST\", '[\"' + group.uuid + '\"]')));\n  try {\n    await\
+          \    get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/groups/\" + group.uuid + \"/users\",\
+          \ token, \"POST\", '[\"' + email + '\"]')));\n  try {\n    await\
           \ Promise.all(emails.map(email =>\n      businessEventsClient.ingest({\n      \
           \  body: {\n          \"event.type\": \"log.quota.exceeded\",\n        \
           \  \"user.email\": email\n        },\n        type: 'application/json; charset=utf-8',\n\
