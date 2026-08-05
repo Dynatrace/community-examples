@@ -1,0 +1,221 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3208.0
+    - id: dynatrace.email
+      version: ^1.10.8
+  inputs: []
+workflow:
+  title: Log Quota check
+  description: ''
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: true
+      trigger:
+        type: interval
+        intervalMinutes: 1
+      filterParameters:
+        earliestStart: '2025-03-26'
+        earliestStartTime: '13:53'
+      timezone: UTC
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    lock_out_users:
+      name: lock_out_users
+      input:
+        script: "/*\nThis code adds all emails returned from \n\"check_for_log_quota\"\
+          \ to the \n\"Quota exceeded\" user group\n*/\n\nimport { credentialVaultClient,\
+          \ businessEventsClient } from \"@dynatrace-sdk/client-classic-environment-v2\"\
+          ;\nimport { execution } from '@dynatrace-sdk/automation-utils';\n\n// const\
+          \ tokenUrl = 'https://sso.dynatrace.com/sso/oauth2/token';\n// const baseUrl\
+          \ = 'https://api.dynatrace.com/';\n//use below constants for Dynatrace hardening\
+          \ environments\nconst tokenUrl = 'https://sso.dynatrace.com/sso/oauth2/token';\n\
+          const baseUrl = 'https://api.dynatrace.com/'\n\n\
+          // Function to get OAuth2 token\nasync function getOAuthToken(clientSecret)\
+          \ {\n  const lastDotIndex = clientSecret.lastIndexOf('.');\n  const clientId\
+          \ = clientSecret.substring(0, lastDotIndex);\n  const data = new URLSearchParams({\n\
+          \    grant_type: 'client_credentials',\n    client_id: clientId,\n    client_secret:\
+          \ clientSecret\n  });\n\n  const response = await fetch(tokenUrl, {\n  \
+          \  method: 'POST',\n    headers: {\n      'Content-Type': 'application/x-www-form-urlencoded'\n\
+          \    },\n    body: data\n  });\n\n  if (!response.ok) {\n    throw new Error(await\
+          \ response.text());\n  }\n\n  const result = await response.json();\n  return result.access_token;\n\
+          }\n\n// Function to call Dynatrace API\nasync function get(api, token, method,\
+          \ data) {\n  const response = await fetch(api, {\n    method: method,\n\
+          \    headers: {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type':\
+          \ 'application/json'\n    },\n    body: data\n  });\n\n  if (!response.ok)\
+          \ {\n    const result = await response.text()\n    console.log(\"Error:\
+          \ \" + result);\n    throw new Error(result);\n  }\n  if (method == \"GET\"\
+          ) {\n    const result = await response.json();\n    return result;\n  }\n\
+          }\n\nexport default async function({ executionId }) {\n  const ex = await\
+          \ execution(executionId)\n  const checkForLogQuotaResult = await ex.result('check_for_log_quota');\n\
+          \  const emails = checkForLogQuotaResult.records.map((item) => item.email);\n\
+          \  \n  const credentialsList = await credentialVaultClient.listCredentials({\n\
+          \    name: '\"Quota check OAuth\"'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
+          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth was\
+          \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
+          \  const credentialId = await (credentialsList.credentials.find(item =>\
+          \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
+          \ id: credentialId});\n  const accountId = credentials.username;\n  const\
+          \ token = await getOAuthToken(credentials.password);\n  const groups = await\
+          \ get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/groups\", token, \"\
+          GET\");\n  const group = groups.items.find(item => item.name == \"Quota\
+          \ exceeded\");\n  if (!group) {\n    throw new Error('No user group with\
+          \ the name \"Quota exceeded\" was found - please create this first in the\
+          \ account management portal.');\n  }\n  await emails.forEach(email =>{\n\
+          \    get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/users/\" + email,\
+          \ token, \"POST\", '[\"' + group.uuid + '\"]');\n  });\n  try {\n    await\
+          \ emails.forEach(email =>{\n      businessEventsClient.ingest({\n      \
+          \  body: {\n          \"event.type\": \"log.quota.exceeded\",\n        \
+          \  \"user.email\": email\n        },\n        type: 'application/json; charset=utf-8',\n\
+          \      });\n    }); \n  } catch(e) {\n    throw Error(\"No permission to\
+          \ ingest Business Events. Make sure your user has the storage:events:write\
+          \ permission.\", e);\n  }\n}"
+      action: dynatrace.automations:run-javascript
+      position:
+        x: 0
+        y: 2
+      conditions:
+        custom: '{{ result("check_for_log_quota").records|length > 0 }}'
+        states:
+          check_for_log_quota: OK
+      description: Run custom JavaScript code.
+      predecessors:
+      - check_for_log_quota
+    check_for_log_quota:
+      name: check_for_log_quota
+      input:
+        query: "/*\nGet all users that consumed > 10 TB of log query today\nand whom\
+          \ haven't been locked out before today\n*/\nfetch dt.system.events, from:\
+          \ -1d@d\n| filter event.kind == \"BILLING_USAGE_EVENT\"\n| filter event.type\
+          \ == \"Log Management & Analytics - Query\"\n| filter event.version == \"\
+          1.0\"\n| dedup event.id\n| summarize {\n  query_volume = sum(billed_bytes)\n\
+          \    }, by:{user.email}\n| filter query_volume > 10 * 1024 * 1024 * 1024\
+          \ * 1024 //10 TB\n| filterOut user.email in [\n  fetch bizevents, from:\
+          \ -1d@d\n  | filter event.type==\"log.quota.exceeded\"\n  | fields user.email\n\
+          ]\n| fields email = user.email"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: Make use of Dynatrace Grail data in your workflow.
+      predecessors: []
+      customSampleResult:
+        types:
+        - mappings:
+            email:
+              type: string
+          indexRange:
+          - 0
+          - 1
+        records:
+        - email: test@test.com
+        metadata:
+          grail:
+            query: 'fetch logs
+
+              | limit 2'
+            locale: ''
+            queryId: ea55b08a-f502-444a-9ad4-7fd1d7061ecd
+            sampled: false
+            timezone: Z
+            dqlVersion: V1_0
+            scannedBytes: 123
+            notifications: []
+            canonicalQuery: 'fetch logs
+
+              | limit 2'
+            scannedRecords: 123
+            analysisTimeframe:
+              end: '2023-01-01T01:01:01.002Z'
+              start: '2023-01-01T01:01:01.001Z'
+            executionTimeMilliseconds: 1
+    quota_reset_at_midnight:
+      name: quota_reset_at_midnight
+      input:
+        script: "/*\n\nThis code removes all users from the \"Quota exceeded\" group\n\
+          \n*/\n\nimport { credentialVaultClient } from \"@dynatrace-sdk/client-classic-environment-v2\"\
+          ;\n\n// const tokenUrl = 'https://sso.dynatrace.com/sso/oauth2/token';\n\
+          // const baseUrl = 'https://api.dynatrace.com/';\n//Use below constants\
+          \ for Dynatrace Hardening environments\nconst tokenUrl = 'https://sso.dynatrace.com/sso/oauth2/token';\n\
+          const baseUrl = 'https://api.dynatrace.com/'\n\n\
+          // Function to get OAuth2 token\nasync function getOAuthToken(clientSecret)\
+          \ {\n  const lastDotIndex = clientSecret.lastIndexOf('.');\n  const clientId\
+          \ = clientSecret.substring(0, lastDotIndex);\n  const data = new URLSearchParams({\n\
+          \    grant_type: 'client_credentials',\n    client_id: clientId,\n    client_secret:\
+          \ clientSecret\n  });\n\n  const response = await fetch(tokenUrl, {\n  \
+          \  method: 'POST',\n    headers: {\n      'Content-Type': 'application/x-www-form-urlencoded'\n\
+          \    },\n    body: data\n  });\n\n  if (!response.ok) {\n    throw new Error(await\
+          \ response.text());\n  }\n\n  const result = await response.json();\n  return\
+          \ result.access_token;\n}\n\nasync function get(api, token, method, data)\
+          \ {\n  const response = await fetch(api, {\n    method: method,\n    headers:\
+          \ {\n      'Authorization': `Bearer ${token}`,\n      'Content-Type': 'application/json'\n\
+          \    },\n    body: data\n  });\n\n  if (!response.ok) {\n    const result\
+          \ = await response.text()\n    console.log(\"Error: \" + result);\n    throw\
+          \ new Error(result);\n  }\n  if (method == \"GET\") {\n    const result\
+          \ = await response.json();\n    return result;\n  }\n}\n\nexport default\
+          \ async function() {\n  const credentialsList = await credentialVaultClient.listCredentials({\n\
+          \    name: '\"Quota check OAuth\"'\n  });\n  if(!credentialsList  || credentialsList.totalCount\
+          \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth was\
+          \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
+          \  const credentialId = await (credentialsList.credentials.find(item =>\
+          \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
+          \ id: credentialId});\n  const accountId = credentials.username;\n  const\
+          \ token = await getOAuthToken(credentials.password);\n  const groups = await\
+          \ get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/groups\", token, \"\
+          GET\");\n  const group = groups.items.find(item => item.name == \"Quota\
+          \ exceeded\");\n  if (!group) {\n    throw new Error('No user group with\
+          \ the name \"Quota exceeded\" was found - please create this first in the\
+          \ account management portal.');\n  }\n  const users = await get(baseUrl\
+          \ + \"iam/v1/accounts/\" + accountId + \"/groups/\" + group.uuid + \"/users\"\
+          , token, \"GET\");\n  const userIds = users.items.map(item => item.email);\n\
+          \  await userIds.forEach(email => {\n    get(baseUrl + \"iam/v1/accounts/\"\
+          \ + accountId + \"/users/\" + email + \"/groups?group-uuid=\" + group.uuid,\
+          \ token, \"DELETE\");\n  });\n  return userIds;\n}"
+      action: dynatrace.automations:run-javascript
+      position:
+        x: -1
+        y: 1
+      conditions:
+        else: STOP
+        custom: '{{now("UTC").strftime("%H:%M") == "00:00"}}'
+        states: {}
+      description: Run custom JavaScript code.
+      predecessors: []
+    send_email_about_log_quota:
+      name: send_email_about_log_quota
+      input:
+        cc: []
+        to:
+        - '{{ _.item.email }}'
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: "Dear {{ _.item.email }},\n\nYou have exceeded your daily quota for\
+          \ log queries in Dynatrace. \n\nIf you need to execute further queries,\
+          \ please ask your Dynatrace administrator to remove you from the \"Quota\
+          \ exceeded\" group.\n\nAlternatively, your quota will be reset at midnight\
+          \ UTC time."
+        subject: Dynatrace Log Quota exceeded
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      active: true
+      position:
+        x: -1
+        y: 2
+      conditions:
+        custom: '{{ result("check_for_log_quota").records|length > 0 }}'
+        states:
+          check_for_log_quota: OK
+      withItems: item in {{result("check_for_log_quota").records}}
+      concurrency: 1
+      description: Send email
+      predecessors:
+      - check_for_log_quota
