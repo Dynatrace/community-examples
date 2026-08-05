@@ -62,20 +62,20 @@ workflow:
           \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth\" was\
           \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
           \  const credentialId = await (credentialsList.credentials.find(item =>\
-          \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
+          \ item.name===\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
           \ id: credentialId});\n  const accountId = credentials.username;\n  const\
           \ token = await getOAuthToken(credentials.password);\n  const groups = await\
           \ get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/groups\", token, \"\
           GET\");\n  const group = groups.items.find(item => item.name == \"Quota\
           \ exceeded\");\n  if (!group) {\n    throw new Error('No user group with\
           \ the name \"Quota exceeded\" was found - please create this first in the\
-          \ account management portal.');\n  }\n  await emails.forEach(email =>{\n\
-          \    get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/users/\" + email,\
-          \ token, \"POST\", '[\"' + group.uuid + '\"]');\n  });\n  try {\n    await\
-          \ emails.forEach(email =>{\n      businessEventsClient.ingest({\n      \
+          \ account management portal.');\n  }\n  await Promise.all(emails.map(email =>\n\
+          \    get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/users/\" + email + \"/groups\",\
+          \ token, \"POST\", '[\"' + group.uuid + '\"]')));\n  try {\n    await\
+          \ Promise.all(emails.map(email =>\n      businessEventsClient.ingest({\n      \
           \  body: {\n          \"event.type\": \"log.quota.exceeded\",\n        \
           \  \"user.email\": email\n        },\n        type: 'application/json; charset=utf-8',\n\
-          \      });\n    }); \n  } catch(e) {\n    throw Error(\"No permission to\
+          \      })));\n  } catch(e) {\n    throw Error(\"No permission to\
           \ ingest Business Events. Make sure your user has the storage:events:write\
           \ permission.\", e);\n  }\n}"
       action: dynatrace.automations:run-javascript
@@ -166,7 +166,7 @@ workflow:
           \ == 0 ) {\n    throw new Error('The credential \"Quota check OAuth\" was\
           \ not found. Make sure it is available in the credential vault.\"')\n  }\n\
           \  const credentialId = await (credentialsList.credentials.find(item =>\
-          \ item.name=\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
+          \ item.name===\"Quota check OAuth\")).id;\n  const credentials = await credentialVaultClient.getCredentialsDetails({\
           \ id: credentialId});\n  const accountId = credentials.username;\n  const\
           \ token = await getOAuthToken(credentials.password);\n  const groups = await\
           \ get(baseUrl + \"iam/v1/accounts/\" + accountId + \"/groups\", token, \"\
@@ -176,9 +176,9 @@ workflow:
           \ account management portal.');\n  }\n  const users = await get(baseUrl\
           \ + \"iam/v1/accounts/\" + accountId + \"/groups/\" + group.uuid + \"/users\"\
           , token, \"GET\");\n  const userIds = users.items.map(item => item.email);\n\
-          \  await userIds.forEach(email => {\n    get(baseUrl + \"iam/v1/accounts/\"\
+          \  await Promise.all(userIds.map(email =>\n    get(baseUrl + \"iam/v1/accounts/\"\
           \ + accountId + \"/users/\" + email + \"/groups?group-uuid=\" + group.uuid,\
-          \ token, \"DELETE\");\n  });\n  return userIds;\n}"
+          \ token, \"DELETE\")));\n  return userIds;\n}"
       action: dynatrace.automations:run-javascript
       position:
         x: -1
