@@ -23,13 +23,36 @@ Every minute the workflow checks how much log-query volume each user has consume
 
 At **midnight UTC** a separate task removes all users from the group so everyone starts the next day with a clean slate. Admins can also unlock a user early by manually removing them from the group.
 
-**Workflow task chain:**
+## How it works
 
-```
-quota_reset_at_midnight  (runs only at 00:00 UTC, parallel)
-check_for_log_quota      (runs every minute)
-  → lock_out_users           (when quota is exceeded)
-  → send_email_about_log_quota (when quota is exceeded)
+Two independent task chains run in parallel on every trigger:
+
+```mermaid
+flowchart TD
+    T(["⏱️ Every minute"])
+
+    T --> C
+    T --> R
+
+    subgraph enforce["Quota Enforcement"]
+        C["check_for_log_quota\nSum log-query bytes per user today\nfrom dt.system.events billing events\nExclude users already locked today\nvia log.quota.exceeded biz events"]
+        C --> Q{"Any user\n> 10 TB?"}
+        Q -->|No| S1(["done"])
+        Q -->|Yes| L
+        Q -->|Yes| E
+        L["lock_out_users\n1. Fetch OAuth token from Credential Vault\n2. Add user to 'Quota exceeded' group\n3. Write log.quota.exceeded biz event"]
+        E["send_email_about_log_quota\nEmail user: quota exceeded,\nresets at midnight UTC"]
+    end
+
+    subgraph midnight["Midnight Reset"]
+        R["quota_reset_at_midnight"]
+        R --> M{"00:00 UTC?"}
+        M -->|No| S2(["done"])
+        M -->|Yes| D["Remove all users from\n'Quota exceeded' group"]
+    end
+
+    L -->|user blocked| G[("'Quota exceeded' group\nPolicy: DENY storage:logs:read\nLog queries return Access Denied")]
+    D -.->|access restored at midnight| G
 ```
 
 ## Screenshots
