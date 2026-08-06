@@ -20,6 +20,7 @@ Each blueprint works independently — start with whichever fits your immediate 
 | [`send-cost-events-to-tenant-workflow/`](./send-cost-events-to-tenant-workflow/) | Daily workflow that ingests yesterday's DPS costs as business events into Grail for trend analysis, dashboards, and alerting |
 | [`email-monthly-budgets-workflow/`](./email-monthly-budgets-workflow/) | Monthly workflow that sends a cost summary email when spend crosses a configurable budget threshold |
 | [`example-script-for-cost-api-data/`](./example-script-for-cost-api-data/) | Local Python script for on-demand cost exploration — prints a summary, checks budget, optionally sends business events to your tenant, and includes an example dashboard template |
+| [`set-quotas-with-workflow/`](./set-quotas-with-workflow/) | Per-minute workflow that enforces a daily log-query quota per user — automatically blocking over-quota users, emailing them, and resetting access at midnight UTC |
 
 ## Prerequisites shared across blueprints
 
