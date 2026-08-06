@@ -83,7 +83,7 @@ The setup takes roughly 15 minutes and involves six steps:
 
 1. Create two IAM policies — one to deny log reads, one for the workflow to run with
 2. Create the **"Quota exceeded"** group and attach the deny policy
-3. Create a service user **"Quota Exceeded Check User"** as the workflow actor
+3. [OPTIONAL (Recommened)]Create a service user **"Quota Exceeded Check User"** as the workflow actor
 4. Create an OAuth client (requires an account manager as the subject user)
 5. Store the OAuth credentials in the Credential Vault as **"Quota check OAuth"**
 6. Import `workflow.yaml` and set the actor to the service user
