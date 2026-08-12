@@ -81,7 +81,7 @@
     "currencyCode": "USD"
   },
   {
-    "key": "LOG_MANAGEMENT_RETAIN_WIQ",
+    "key": "LOG_MANAGEMENT_RETAIN_QUERY_INCLUDED",
     "name": "Log Management & Analytics - Retain with Included Queries",
     "price": "20000.00",
     "Category": "Log Analytics",
@@ -189,7 +189,7 @@
     "currencyCode": "USD"
   },
   {
-    "key": "METRICS_RETAIN",
+    "key": "METRICS_EXTENDED_RETAIN",
     "name": "Metrics - Retain",
     "price": "700.00",
     "Category": "Metrics powered by Grail",
@@ -245,6 +245,15 @@
   {
     "key": "EVENTS_RETAIN",
     "name": "Events - Retain",
+    "price": "700.00",
+    "Category": "Events powered by Grail",
+    "unitName": "gibibyte-days",
+    "priceUnit": "1000000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "EVENTS_RETAIN",
+    "name": "Files - Retain",
     "price": "700.00",
     "Category": "Events powered by Grail",
     "unitName": "gibibyte-days",
@@ -312,6 +321,51 @@
     "Category": "Platform Extensions",
     "unitName": "invocations",
     "priceUnit": "100000000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "DATA_EGRESS",
+    "name": "Data Egress",
+    "price": "1000.00",
+    "Category": "Platform",
+    "unitName": "gibibytes",
+    "priceUnit": "10000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "DATABASE_MONITORING",
+    "name": "Database Monitoring",
+    "price": "4000.00",
+    "Category": "Application and Infrastructure Observability",
+    "unitName": "database-instance-hours",
+    "priceUnit": "100000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "AI_FUNCTIONS",
+    "name": "AI Units",
+    "price": "1000.00",
+    "Category": "AppEngine Functions",
+    "unitName": "AI units",
+    "priceUnit": "1000000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "DEM_RETAIN",
+    "name": "Digital Experience Monitoring - Retain",
+    "price": "4000.00",
+    "Category": "Digital Experience Monitoring",
+    "unitName": "gibibyte-days",
+    "priceUnit": "1000000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "DEM_QUERY",
+    "name": "Digital Experience Monitoring - Query",
+    "price": "3500.00",
+    "Category": "Digital Experience Monitoring",
+    "unitName": "gibibytes-scanned",
+    "priceUnit": "1000000",
     "currencyCode": "USD"
   }
 ]
