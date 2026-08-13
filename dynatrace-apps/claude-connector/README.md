@@ -21,9 +21,11 @@ Connect Claude with Dynatrace using this action for Workflows. It allows to defi
 
 ## 🚀 Install the app on the Dynatrace platform
 
-*Claude Connector for Dynatrace Workflows is available as a Dynatrace app to all customers upon request. Please contact your Dynatrace representative to activate Claude Connector for your tenant.*
+*Claude Connector for Dynatrace Workflows is available as a Dynatrace app to all customers upon request.*
 
-- Once installed, you can find it as a new action if you search for *Claude* in Workflows.
+1. *Claude Connector for Dynatrace Workflows* is delivered via a [Hub subscription](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Email [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) with your account name and tenant ID, as described [here](https://github.com/Dynatrace/community-examples/blob/main/dynatrace-apps/README.md).
+2. We'll process your request and send instructions for subscribing to the channel and installing the app.
+3. After installation, search for *Claude* in Workflows to find it as a new action.
 
 ---
 

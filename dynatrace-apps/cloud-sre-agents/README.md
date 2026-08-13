@@ -27,50 +27,83 @@ When Dynatrace Intelligence fires a problem, three workflows do the rest in the 
 Agents do not communicate with each other; each runs independently in its own cloud.
 
 
+```mermaid
+flowchart TB    
+    Q -->|AWS| B1
+    Q -->|Azure| B2
+    Q -->|GCP| B3
+    B4 --> C1
+    B5 -.-> C1
+    C1 --> D1
 
+    subgraph one["`<span style='display:block;width:100%;color:#1866FE'>Dynatrace</span>`"]
+        A1["Dynatrace Intelligence detects an issue"]
+        A2["Identify root cause and create Problem"]
+        A3["`Trigger workflow<br>*(Workflow 1)*`"]
+        Q["Dispatch on profile match"]
+    
+        A3-->Q
+        A1-->A2
+        A2-->A3    
+    end    
+
+    subgraph two["Cloud-native agents"]
+        B1["AWS DevOps Agent"]
+        B2["Azure SRE Agent"]
+        B3["Google Geminie Cloud Assist"]
+        B4["Investigate Problem"]
+        B5["Mitigate"]
+    
+        B1-->B4
+        B2-->B4
+        B3-->B4
+        B4-. Optional .-> B5      
+    end
+
+    C1["`Update and add annotation<br>*(Workflow 2 and 3)*`"]
+
+    subgraph three["`<span style='display:block;width:100%;color:#1866FE'>Dynatrace</span>`"]
+        D1["Dynatrace Problem"]
+        D2["`Root cause<br>*(Detected from Dynatrace)*`"]
+        D3["`Cloud-native evidence<br>*(from agents)*`"]
+        D4["`Suggested Remediation<br>*(AWS and Azure only)*`"]
+
+        D1-->|Includes| D2
+        D1-->|Includes| D3
+        D1-.->|"Optional"|D4
+    end
+
+    style one fill:#A3C2FF,stroke:#1866FE,stroke-width:3px
+    style three fill:#A3C2FF,stroke:#1866FE,stroke-width:3px
 ```
-  Dynatrace                                        Cloud-native agents
-  ─────────                                        ────────────────────
 
-  ┌──────────────┐                                 ┌──────────────┐
-  │  Dynatrace   │                        ┌───────▶│    AWS      │──┐
-  │ Intelligence │                        │        │  DevOps      │  │
-  │  detects &   │  Problem               │        │   Agent      │  │
-  │  names root  │──────────────┐         │        └──────────────┘  │
-  │    cause     │              │         │                          │
-  └──────────────┘              ▼         │        ┌──────────────┐  │
-                        ┌──────────────┐  ├───────▶│  Azure SRE   │──┤
-                        │  Workflow 1  │──┤        │    Agent     │  │
-                        │              │  │        └──────────────┘  │
-                        │ (dispatch on │  │                          │
-                        │   profile    │  │        ┌──────────────┐  │
-                        │    match)    │  └───────▶│    Google    │──┤
-                        └──────────────┘           │ Gemini Cloud │  │
-                                                   │    Assist    │  │
-                                                   └──────────────┘  │
-                                                          findings   │
-  ┌──────────────────────────────────────────┐                       │
-  │      THE DYNATRACE PROBLEM SCREEN        │◀──────────────────────┘
-  │  • root cause (from Intelligence)        │    annotations written by
-  │  • cloud-native evidence (from agents)   │    Workflows 2 and 3
-  │  • suggested remediation (AWS, Azure)    │
-  └──────────────────────────────────────────┘
 
-```
+
+
+
+
+
+
+
+
+
+
+
 
 Two configuration objects drive the dispatch in Workflow 1:
 
 - Interaction Profile — a routing rule. Combines global filters with one or more agent assignments and optional per-agent filters. Only enabled profiles are evaluated.
 - Agent — a connection to a cloud AI service (AWS / Azure / GCP). Has type, endpoint, credential, optional monthly duration budget. Disable to pause without losing config.
 
-## Before you start
-1. You need to add the app to your tenant first. *Cloud SRE Agents* is delivered via a so-called [Hub subscriptions](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Please send us an email to [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) including your account name and tenant ID as [outlined here](https://github.com/Dynatrace/community-examples/edit/main/dynatrace-apps/README.md).
-2. Once we have processed your request, you will receive detailed instructions on how to subscribe to the channel and install the app. 
+## Before you start - Install the app
+
+*Cloud SRE Agents is available as a Dynatrace app to all customers upon request.*
+
+1. *Cloud SRE Agents* is delivered via a [Hub subscription](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Email [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) with your account name and tenant ID, as described [here](https://github.com/Dynatrace/community-examples/blob/main/dynatrace-apps/README.md).
+2. We'll process your request and send instructions for subscribing to the channel and installing the app.
 
 ## First 5 minutes
-*To install the app via Dynatrace Hub, you first need to subscribe your tenant to a Hub subscription. [Click here to learn more](https://github.com/Dynatrace/community-examples/tree/main/dynatrace%20apps#%E2%84%B9%EF%B8%8F-how-to-install-a-community-app-via-hub]).*
-
-Once installed, this is the shortest path from install → first investigation:
+Once installed, follow the next steps to start your first investigation:
 
 1. Setup tab (3 min). Install IAM policy, group, service user. Install all three workflows. Set workflow actor to the service user on each.
 2. Add one agent (1 min). Configuration → add agent (any cloud) → endpoint + credential → save. Accept the outbound-whitelist prompt.
