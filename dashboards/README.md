@@ -16,7 +16,7 @@ Looking for more? See the [ready-made dashboards](https://docs.dynatrace.com/doc
 
 ## Contributing
 
-Follow the [repository standards](../STANDARDS.md) and the [quality bar](../CONTRIBUTING.md), and copy the [gold-standard example](../example-entry/dashboards/order-fulfillment-observability/). **Dynatrace employees:** see the internal Community Examples & Solutions page for how to submit.
+Follow the [repository standards](../STANDARDS.md) and the [quality bar](../CONTRIBUTING.md), and start from the [README template](../templates/EXAMPLE-README-template.md). **Dynatrace employees:** see the internal Community Examples & Solutions page for how to submit.
 
 ## Also includes Dashboards (primary home elsewhere)
 

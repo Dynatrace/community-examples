@@ -16,7 +16,7 @@ Categories: `dynatrace-apps/` · `dashboards/` · `notebooks/` · `launchpads/` 
 
 > **Apps note:** Consumers install apps via the Dynatrace Hub, not from this repo. The `dynatrace-apps/` folder is an **index** — each app subfolder holds a README that describes the app and links to its Hub listing. It does not store the app's source code.
 
-> **Hybrid note:** Dashboards, notebooks, and launchpads have separate folders. A solution that combines several types lives in **one** folder (its primary artifact) and is **cross-linked** from the others — see [§7 Hybrid solutions & cross-linking](#7-hybrid-solutions--cross-linking).
+> **Hybrid note:** Dashboards, notebooks, and launchpads have separate folders. A solution that combines several types lives in **one** folder (its primary artifact) and is **cross-linked** from the others — see [§6 Hybrid solutions & cross-linking](#6-hybrid-solutions--cross-linking).
 
 ## 2. Naming pattern
 
@@ -53,8 +53,6 @@ also_includes: []            # other artifact types in this solution, e.g. [Note
 tags: [business-observability, logs, order-management, retail]
 verticals: [retail, e-commerce]   # optional
 capabilities: [Logs, Grail, Business Events]   # Dynatrace capabilities used
-author: Jane Doe
-contact: "@jane.doe (Slack)"  # optional
 last_updated: 2026-06-17
 ---
 ```
@@ -79,13 +77,10 @@ last_updated: 2026-06-17
 - **No secrets.** Never commit API tokens, credentials, or private keys.
 - **No customer data.** Anonymize or use synthetic data. Remove customer names from titles, folders, and screenshots.
 - **No hard-coded environment values.** Replace tenant URLs, IDs, and management-zone names with variables or placeholders.
+- **No individual attribution.** Solutions are published under the Dynatrace Community, not under individual names. Don't add `author`/`contact` front-matter, "Contributed by" credits, personal email addresses, or Slack/GitHub handles to a README. Route support through [GitHub issues](../../issues) or **#help-community-examples** on Slack instead.
 - **State the blast radius** (config-as-code): say exactly what the config creates or modifies.
 
-## 6. The gold standard
-
-The **[order-fulfillment-observability](./example-entry/dashboards/order-fulfillment-observability/)** entry is the reference implementation. Copy its structure, README, and naming for any new submission.
-
-## 7. Hybrid solutions & cross-linking
+## 6. Hybrid solutions & cross-linking
 
 Some solutions combine more than one artifact type — e.g. a dashboard that drills into a notebook. Handle these with **one physical home plus cross-links** — never duplicate files across folders.
 

@@ -4,8 +4,6 @@ category: Blueprints
 type: Blueprint
 tags: [cost-intelligence, dps, python, business-events, account-management-api]
 capabilities: [Business Events, Grail, Account Management API]
-author: Benno Grottenegg
-contact: "@benno.grottenegg (Slack)"
 last_updated: 2026-08-03
 ---
 

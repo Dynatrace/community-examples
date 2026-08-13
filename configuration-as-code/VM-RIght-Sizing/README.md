@@ -52,6 +52,3 @@ To deploy it, please follow the steps below:
     4. Go to Settings>Dynatrace Apps>Slack/Jira to check your Slack and Jira connections and go to the new Workflows apps to check your 2 newly created workflows. 
 
 In case you need to delete the configuration, feel free to run the monaco delete command with the delete.yaml.
-
-Author: Danilo Vukotic - danilo.vukotic@dynatrace.com
-

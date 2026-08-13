@@ -53,6 +53,3 @@ To deploy it, please follow the steps below:
     5. Explore your Dynatrace environment and check out what got deployed
 
 In case you need to **delete** the configuration, feel free to explore the [delete command](https://docs.dynatrace.com/docs/manage/configuration-as-code/monaco/reference/commands#delete).
-
-Author: Danilo Vukotic - danilo.vukotic@dynatrace.com
-

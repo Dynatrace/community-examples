@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Cost Optimization Review — [tenant-id]</title>
+<style>
+  :root {
+    --bg: #f8f9fb;
+    --card: #ffffff;
+    --border: #e2e6ea;
+    --accent: #1a6cf6;
+    --accent-light: #eef3fe;
+    --warn: #f59e0b;
+    --warn-light: #fffbeb;
+    --ok: #10b981;
+    --ok-light: #ecfdf5;
+    --muted: #6b7280;
+    --text: #111827;
+    --subtext: #374151;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  h2 { font-size: 17px; font-weight: 600; color: var(--text); margin: 28px 0 12px; border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 600; color: var(--subtext); margin: 18px 0 8px; }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 28px; }
+  .callout { border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
+  .callout.ok   { background: var(--ok-light);   border-left: 4px solid var(--ok);   }
+  .callout.info { background: var(--accent-light); border-left: 4px solid var(--accent); }
+  .callout.warn { background: var(--warn-light);  border-left: 4px solid var(--warn);  }
+  .callout > strong { display: block; margin-bottom: 4px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 4px; }
+  .summary-card .value { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .summary-card .sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden;
+          border: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; }
+  thead tr { background: #f1f5f9; }
+  th { text-align: left; padding: 9px 12px; font-weight: 600; color: var(--subtext); font-size: 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge.high   { background: #fee2e2; color: #b91c1c; }
+  .badge.medium { background: #fef3c7; color: #92400e; }
+  .badge.low    { background: #d1fae5; color: #065f46; }
+  .badge.info   { background: #dbeafe; color: #1e40af; }
+  .footnote { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+  .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 22px; }
+  .start-here { background: #fffbeb; border: 2px solid var(--warn); border-radius: 10px; padding: 18px 22px; margin-bottom: 24px; }
+  .start-here h2 { border-color: var(--warn); margin-top: 0; }
+  .tag { display: inline-block; background: #f1f5f9; border: 1px solid var(--border); border-radius: 4px;
+         padding: 1px 6px; font-size: 11px; font-family: monospace; color: var(--subtext); }
+  .mono { font-family: monospace; font-size: 12px; }
+  .excluded-row td { color: var(--muted); font-style: italic; }
+  .total-row td { font-weight: 700; background: #f1f5f9; }
+  ul.bullets { padding-left: 18px; margin: 6px 0; }
+  ul.bullets li { margin-bottom: 4px; }
+  .cloud-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .aws   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+  .azure { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .k8s   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <h1>&#x2601;&#xfe0f; Cloud Cost Optimization Review</h1>
+  <p class="meta">Tenant: <strong>[tenant-id]</strong> &nbsp;&middot;&nbsp; Generated: <strong>2026-08-13</strong> &nbsp;&middot;&nbsp; Data source: Dynatrace Smartscape + CloudWatch metrics (14-day window)</p>
+  <p class="meta" style="color:#b45309;background:#fef3c7;padding:6px 10px;border-radius:6px;display:inline-block;">
+    &#x26a0;&#xfe0f; <strong>Sample output only.</strong> Tenant ID and account numbers have been anonymised. This file illustrates the report format — actual figures come from a real Dynatrace tenant analysis.
+  </p>
+
+  <div class="callout ok" style="margin-top:20px;">
+    <strong>&#x2705; A note before we start</strong>
+    Running infrastructure at scale always produces some low-utilization resources &mdash; that&rsquo;s normal and expected, not a mistake. This review is a starting point for a conversation, not an audit. Everything flagged here is a <em>savings opportunity worth a look</em>, not a problem that needs immediate action. Some items may already be on your radar or intentional by design.
+  </div>
+
+  <div class="callout info">
+    <strong>&#x1f50d; What we found in this environment</strong>
+    <ul class="bullets">
+      <li><span class="cloud-badge aws">AWS</span> &nbsp;<strong>Active integration confirmed</strong> &mdash; 70 EC2 instances, 35 Lambda functions, 35 RDS instances, 71 EBS volumes, 5 ECS clusters, 1 EKS cluster, 1 NAT gateway, 21 EIPs</li>
+      <li><span class="cloud-badge azure">Azure</span> &nbsp;<strong>Active integration confirmed</strong> &mdash; 3 managed disks, 4 public IPs, 1 VMSS, 1 AKS cluster, 6 Azure Functions</li>
+      <li><span class="cloud-badge k8s">Kubernetes</span> &nbsp;<strong>3 clusters detected</strong> &mdash; <span class="tag">gke-playground-dev</span>, <span class="tag">eks-playground-dev</span>, <span class="tag">aks-playground-dev</span></li>
+    </ul>
+  </div>
+
+  <h2>Executive Summary</h2>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="label">Identified Savings Opportunity</div>
+      <div class="value">~$4,800</div>
+      <div class="sub">per month, list-price estimate</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Largest Category</div>
+      <div class="value">~$3,840</div>
+      <div class="sub">Idle EC2 (testing-ag fleet)</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">AWS Opportunities</div>
+      <div class="value">~$4,760</div>
+      <div class="sub">EC2 + EIP + NAT gateway</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Azure Opportunities</div>
+      <div class="value">~$40</div>
+      <div class="sub">Unattached managed disks</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">EBS Volumes (unattached)</div>
+      <div class="value">$0</div>
+      <div class="sub">None found &mdash; good hygiene &#x2705;</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Lambda (zero-invocation)</div>
+      <div class="value">$0</div>
+      <div class="sub">All functions invoked &#x2705;</div>
+    </div>
+  </div>
+
+  <p style="color:var(--muted);font-size:12px;margin-bottom:24px;">
+    &#x26a0;&#xfe0f; All figures are <strong>on-demand list-price estimates</strong>. Savings Plans, Reserved Instances, Azure Hybrid Benefit, or EDP commitments will reduce your actual bill.
+  </p>
+
+  <div class="start-here">
+    <h2>&#x1f680; Where We&rsquo;d Start</h2>
+    <p>The single highest-impact action is reviewing the <strong><span class="tag">testing-ag-*</span> EC2 fleet</strong> &mdash; approximately 14 instances of type <span class="tag">t2.2xlarge</span> running at &lt;2% average CPU over 14 days. If they&rsquo;re no longer needed, stopping or terminating them represents roughly <strong>~$3,840/month</strong> in savings.</p>
+    <p style="margin-top:8px;">Second priority: the <strong>1 unassociated Elastic IP</strong> and the <strong>NAT gateway traffic review</strong> &mdash; quick wins that take minutes to verify.</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="cloud-badge aws">AWS</span> &nbsp; Underused EC2 Instances (avg CPU &lt;5% over 14 days)</h2>
+    <table>
+      <thead>
+        <tr><th>Instance Name</th><th>Type</th><th>Avg CPU (14d)</th><th>Est. $/mo</th><th>Priority</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">testing-ag-* (&times;14 fleet)</td><td class="tag">t2.2xlarge</td><td>0.16&ndash;1.93%</td><td><strong>~$3,836/mo total</strong></td><td><span class="badge high">High</span></td></tr>
+        <tr><td class="mono">active-gate-twl</td><td class="tag">t2.xlarge</td><td>&lt;2%</td><td>~$137/mo</td><td><span class="badge medium">Medium</span></td></tr>
+        <tr><td class="mono">active-gate-zad</td><td class="tag">t2.large</td><td>&lt;2%</td><td>~$68/mo</td><td><span class="badge medium">Medium</span></td></tr>
+        <tr class="total-row"><td colspan="3">Subtotal (testing-ag fleet only)</td><td>~$3,836/mo</td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="footnote">&dagger; t2.2xlarge on-demand Linux us-east-1: $0.3712/hr &times; 730 hr = ~$271/mo (AWS published rate). ActiveGate instances excluded from savings total &mdash; low CPU is expected behaviour for a relay/proxy process.</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="cloud-badge aws">AWS</span> &nbsp; Unattached EBS Volumes</h2>
+    <div class="callout ok">
+      <strong>&#x2705; No unattached EBS volumes found</strong>
+      All 71 EBS volumes are in <em>in-use</em> state. Good hygiene &mdash; nothing to action here.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="cloud-badge aws">AWS</span> &nbsp; Unassociated Elastic IPs</h2>
+    <table>
+      <thead><tr><th>Public IP</th><th>Region</th><th>Est. $/mo</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">[ip-address]</td><td>us-east-1</td><td>~$3.65/mo</td><td><span class="badge low">Low</span></td></tr>
+        <tr class="total-row"><td colspan="2">Subtotal</td><td>~$3.65/mo</td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="footnote">&dagger; AWS charges $0.005/hr for unassociated EIPs = $3.65/mo. Low dollar impact but a quick release.</p>
+  </div>
+
+  <div class="section">
+    <h2><span class="cloud-badge k8s">Kubernetes</span> &nbsp; Cluster Overview &amp; Resource Efficiency</h2>
+    <p style="margin-bottom:12px;color:var(--muted);">3 clusters detected, all carrying <em>playground-dev</em> naming &mdash; non-production, experimental workloads.</p>
+    <div class="callout info">
+      <strong>&#x1f4a1; Key lever for dev clusters</strong>
+      The most impactful K8s cost lever for dev clusters is typically <strong>scheduled scale-down</strong> (scale to zero overnight and weekends), not right-sizing individual pods. For EKS: consider converting the node group to <strong>Spot Instances</strong> (60&ndash;80% savings on EC2 nodes). For AKS: enable <strong>spot node pools</strong> and the cluster auto-scaler.
+    </div>
+    <p class="footnote">&dagger; A full namespace-level request vs. usage breakdown requires the DQL query in the Methodology section below &mdash; run it in a Dynatrace Notebook for a live view.</p>
+  </div>
+
+  <div class="section">
+    <h2>&#x1f4b0; Savings Opportunity Summary</h2>
+    <table>
+      <thead><tr><th>Category</th><th>Cloud</th><th>Est. $/mo</th><th>Confidence</th><th>Effort</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Idle EC2 &mdash; testing-ag fleet</strong></td><td><span class="cloud-badge aws">AWS</span></td><td><strong>~$3,836</strong></td><td><span class="badge high">High</span></td><td>Low &mdash; stop/terminate</td></tr>
+        <tr><td>Unassociated Elastic IP</td><td><span class="cloud-badge aws">AWS</span></td><td>~$4</td><td><span class="badge high">High</span></td><td>Very low</td></tr>
+        <tr><td>Unattached managed disks</td><td><span class="cloud-badge azure">Azure</span></td><td>~$40 (placeholder)</td><td><span class="badge low">Low &mdash; needs verification</span></td><td>Very low</td></tr>
+        <tr><td>K8s dev cluster scale-down / Spot</td><td><span class="cloud-badge k8s">K8s</span></td><td>Potentially significant</td><td><span class="badge medium">Medium</span></td><td>Medium</td></tr>
+        <tr class="total-row"><td colspan="2"><strong>Conservative Total (confirmed items)</strong></td><td><strong>~$4,840/mo</strong></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>&#x1f4d0; How We Calculated This &mdash; Methodology</h2>
+    <h3>K8s namespace utilisation query (run in a Dynatrace Notebook)</h3>
+    <pre style="background:#f1f5f9;padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;margin-top:8px;">timeseries {
+  cpu_usage    = sum(dt.kubernetes.container.cpu_usage),
+  cpu_requests = sum(dt.kubernetes.container.requests_cpu),
+  mem_usage    = sum(dt.kubernetes.container.memory_working_set),
+  mem_requests = sum(dt.kubernetes.container.requests_memory)
+}, by: {k8s.cluster.name, k8s.namespace.name},
+from: now()-15m
+| fieldsAdd
+    avg_cpu_usage    = arrayAvg(cpu_usage),
+    avg_cpu_requests = arrayAvg(cpu_requests),
+    avg_mem_usage    = arrayAvg(mem_usage),
+    avg_mem_requests = arrayAvg(mem_requests)
+| filter isNotNull(avg_cpu_requests) and avg_cpu_requests > 0
+| fieldsAdd
+    cpu_efficiency_pct = round((avg_cpu_usage / avg_cpu_requests) * 100, decimals:1),
+    mem_efficiency_pct = round((avg_mem_usage / avg_mem_requests) * 100, decimals:1)
+| sort cpu_efficiency_pct asc
+| limit 20</pre>
+    <h3>Important caveats</h3>
+    <ul class="bullets">
+      <li>All estimates are <strong>on-demand list prices</strong>. Savings Plans, RIs, Azure Hybrid Benefit, and EDP discounts reduce actual savings.</li>
+      <li>Stopping an EC2 instance covered by a Reserved Instance does <em>not</em> stop the RI charge.</li>
+      <li>This review covers a point-in-time snapshot. Re-run monthly for an up-to-date picture.</li>
+    </ul>
+  </div>
+
+  <p style="text-align:center;color:var(--muted);font-size:11px;margin-top:32px;padding-top:16px;border-top:1px solid var(--border);">
+    Generated by Dynatrace Assist &middot; Sample output for community-examples repo &middot; 2026-08-13
+  </p>
+
+</div>
+</body>
+</html>
