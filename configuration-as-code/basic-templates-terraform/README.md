@@ -60,6 +60,3 @@ To deploy it, please follow the steps below:
     6. Explore your Dynatrace environment and check out what got deployed
 
 In case you need to **delete** the configuration, feel free to run "terraform destroy". Feel free to refer to [delete configuration documentation page](https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/teraform-basic-example#delete-the-configuration).
-
-Author: Danilo Vukotic - danilo.vukotic@dynatrace.com
-

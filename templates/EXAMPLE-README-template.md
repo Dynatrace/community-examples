@@ -6,8 +6,6 @@ also_includes: []            # other artifact types in this solution, e.g. [Note
 tags: [tag-one, tag-two]
 verticals: []                # optional, e.g. [banking, retail]
 capabilities: []             # Dynatrace capabilities used, e.g. [Logs, Grail, RUM, Workflows]
-author: <Your Name>
-contact: ""                  # optional, e.g. GitHub @handle
 last_updated: YYYY-MM-DD
 ---
 

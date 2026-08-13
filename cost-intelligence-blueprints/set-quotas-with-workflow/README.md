@@ -4,8 +4,6 @@ category: Blueprints
 type: Blueprint
 tags: [cost-intelligence, log-management, quota, iam, automation, access-control]
 capabilities: [Automation Workflows, IAM Policy Management, Business Events, Grail]
-author: Benno Grottenegg
-contact: "@benno.grottenegg (Slack)"
 last_updated: 2026-08-05
 ---
 

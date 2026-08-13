@@ -36,7 +36,7 @@ Community Examples & Solutions are contributed by **Dynatrace employees**.
 - **Dynatrace employees:** the contribution process lives on the internal **Community Examples & Solutions** page (search "Community Examples & Solutions" on the internal SharePoint). See also **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 - **Everyone:** these solutions are free to use and adapt. Found a problem with one? Open a [GitHub issue](../../issues).
 
-Every contribution meets the [quality bar](./CONTRIBUTING.md): clear customer value, reusable by design (no hard-coded IDs/environments), production-ready, low adoption friction, and self-service documentation. All submissions follow the **[repository standards](./STANDARDS.md)** — the fastest way to get it right is to copy the **[gold-standard example](./example-entry/dashboards/order-fulfillment-observability/)**.
+Every contribution meets the [quality bar](./CONTRIBUTING.md): clear customer value, reusable by design (no hard-coded IDs/environments), production-ready, low adoption friction, and self-service documentation. All submissions follow the **[repository standards](./STANDARDS.md)** — start from the **[README template](./templates/EXAMPLE-README-template.md)**.
 
 ---
 
