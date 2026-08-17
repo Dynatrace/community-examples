@@ -2,6 +2,8 @@
 
 View, search, and quickly filter **audit logs** across your Dynatrace environment — both modern platform audit logs (via Grail) and classic API-based audit logs — in a single unified interface.
 
+<img alt="Audit Logs Viewer" src="image.png" />
+
 ---
 
 ## ✨ Features
@@ -9,7 +11,6 @@ View, search, and quickly filter **audit logs** across your Dynatrace environmen
 - **Unified audit log view**: combines Grail-based platform audit logs and legacy environment API audit logs in one place.
 - **Filter bar**: filter by timeframe, user, event type, category, and more.
 - **User enrichment**: resolves user IDs to human-readable names and emails via the IAM service.
-- **Bucket-aware**: reads from the correct Grail storage buckets automatically.
 
 ---
 
