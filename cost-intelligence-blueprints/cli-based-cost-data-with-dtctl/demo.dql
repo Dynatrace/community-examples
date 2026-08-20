@@ -1,0 +1,11 @@
+fetch dt.system.events, from: now()-30d@d, to: now()@d
+| filter event.kind == "BILLING_USAGE_EVENT"
+| filter event.type == "Full-Stack Monitoring" or event.type == "Infrastructure Monitoring"
+| dedup event.id, event.type
+| summarize `Usage (GiB/h)`=sum(coalesce(billed_gibibyte_hours, billed_host_hours)),dt.cost.costcenter=takeLast(dt.cost.costcenter), 
+              dt.cost.product=takeLast(dt.cost.product),
+              by: {event.type, day=  formatTimestamp(bin(timestamp, 1d), format:"yyyy-MM-dd")}
+| fieldsAdd Cost= if(event.type=="Infrastructure Monitoring",
+              `Usage (GiB/h)` * toDouble(0.003), //replace price when needed.
+              else:`Usage (GiB/h)` * toDouble(0.0006)) //replace price when needed.
+| sort event.type, day
