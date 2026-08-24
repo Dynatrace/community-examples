@@ -17,8 +17,8 @@ dtctl doctor
 
 ---
 
-## Step 3: Create query 
-Create a query like `dtctl query "fetch logs | limit 10" ` or run it or use the demo.dql
+## Step 3: Create query
+Create a query like `dtctl query "fetch logs | limit 10"` or run the provided [`demo.dql`](demo.dql).
 
 ---
 
