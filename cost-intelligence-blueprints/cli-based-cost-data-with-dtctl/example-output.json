@@ -1,0 +1,28 @@
+{
+  "records": [
+    {
+      "Cost": 6.562987499999999,
+      "Usage (GiB/h)": 10938.3125,
+      "day": "2026-06-17",
+      "dt.cost.costcenter": "research-and-development/RnD",
+      "dt.cost.product": "easytravel-VMware",
+      "event.type": "Full-Stack Monitoring"
+    },
+    {
+      "Cost": 8.820675,
+      "Usage (GiB/h)": 14701.125,
+      "day": "2026-06-18",
+      "dt.cost.costcenter": "quality-assurance/QA",
+      "dt.cost.product": "stock-market-application",
+      "event.type": "Full-Stack Monitoring"
+    },
+    {
+      "Cost": 8.657475,
+      "Usage (GiB/h)": 14429.125,
+      "day": "2026-06-19",
+      "dt.cost.costcenter": "it-support-services/IT",
+      "dt.cost.product": "warehouse-wizard",
+      "event.type": "Full-Stack Monitoring"
+    }
+  ]
+}
