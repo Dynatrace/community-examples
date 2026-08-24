@@ -7,7 +7,7 @@ capabilities: [DQL, CLI]
 last_updated: 2026-08-20
 ---
 
-# CLI based cost data with dtctl
+# CLI-based cost data with dtctl
 
 Fetches DPS usage data from your tenant and outputs it in your preferred format (JSON, CSV, or others).
 
