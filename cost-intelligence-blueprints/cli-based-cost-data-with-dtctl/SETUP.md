@@ -18,19 +18,20 @@ dtctl doctor
 ---
 
 ## Step 3: Create query 
-create a query and run it or use the demo.dql
+Create a query like `dtctl query "fetch logs | limit 10" ` or run it or use the demo.dql
 
 ---
 
 ## Step 4: Run Query out of your Terminal
 
 Run to see results in your terminal:
-`dtctl query -f "demo-dql.dql"`
+`dtctl query -f "demo.dql"`
+--> see screenshot-run-demo-file
 
 Export data as csv:
-`dtctl query -f "demo-dql.dql" -o csv > my_cost.csv`
+`dtctl query -f "demo.dql" -o csv > my_cost.csv`
 --> see example-output.csv
 
 Export data as csv and as json:
-`dtctl query -f "demo-dql.dql" -o csv > my_cost.csv && dtctl query -f "demo-dql.dql" -o json > my_cost.json`
+`dtctl query -f "demo.dql" -o csv > my_cost.csv && dtctl query -f "demo.dql" -o json > my_cost.json`
 --> see example-output.json

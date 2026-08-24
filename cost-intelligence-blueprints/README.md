@@ -9,7 +9,8 @@ Each blueprint is self-contained in its own subfolder with a README explaining w
 The recommended combination is: 
 - use the **daily workflow** to continuously collect cost data into Grail, perfect for longer lasting budget tracking / Dashboarding / Alerting 
 - use the **email workflow** to stay on top of budget thresholds
-- use the **Python script** to bring cost events into your FinOps or data lake stack or directly into Grail - easy to adjust for longer historic timeperiods.
+- use the **Python script** to bring cost events into your FinOps or data lake stack or directly into Grail - easy to adjust for longer historic timeperiods
+- use the **CLI blueprint** for quick, on-demand exports or to script periodic pulls without running a full workflow
   
 Each blueprint works independently — start with whichever fits your immediate need.
 
@@ -21,6 +22,7 @@ Each blueprint works independently — start with whichever fits your immediate 
 | [`email-monthly-budgets-workflow/`](./email-monthly-budgets-workflow/) | Monthly workflow that sends a cost summary email when spend crosses a configurable budget threshold |
 | [`example-script-for-cost-api-data/`](./example-script-for-cost-api-data/) | Local Python script for on-demand cost exploration — prints a summary, checks budget, optionally sends business events to your tenant, and includes an example dashboard template |
 | [`set-quotas-with-workflow/`](./set-quotas-with-workflow/) | Per-minute workflow that enforces a daily log-query quota per user — automatically blocking over-quota users, emailing them, and resetting access at midnight UTC |
+| [`cli-based-cost-data-with-dtctl/`](./cli-based-cost-data-with-dtctl/) | CLI-based approach using dtctl to run DQL queries from the terminal and export usage data as JSON or CSV for use in FinOps tools or automated pipelines |
 
 ## Prerequisites shared across blueprints
 
