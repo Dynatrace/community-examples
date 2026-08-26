@@ -1,4 +1,4 @@
-# DPS Cost Allocation Dashboard v3.9
+# DPS Cost Allocation Dashboard v3.10
 
 ## Overview
 **Understand your costs. Stay in control.**
@@ -57,13 +57,13 @@ Before you begin, ensure you have:
 ### Installation Steps
 1. **Download the JSON File**  
    Choose the version that fits your needs:
-   - [Standard version](DPS%20Cost%20Allocation%20Overview%20Dashboard%20v3.9.json) — cost overview by capability and cost center, no additional setup required.
-   - [With Query, Workflow & Functions support](DPS%20Cost%20Allocation%20Overview%20Dashboard%20v3.9%20w%20Query%2C%20Workflow%2C%20Functions%20support.json) & [Helper Notebook](Notebook%20helper/Cost%20Allocation%20with%20Lookup%20Tables%20Notebook%20v3.6.json) — additionally maps individual users to cost centers or products via a lookup table. Requires setting up a notebook and a workflow.
+   - [Standard version](DPS%20Cost%20Allocation%20Overview%20Dashboard%20v3.10.json) — cost overview by capability and cost center, no additional setup required.
+   - [Extended version](DPS%20Cost%20Allocation%20Overview%20Dashboard%20extended%20v3.10.json) & [Helper Notebook](Notebook%20helper/Cost%20Allocation%20Extended%20Setup%20Notebook%20v3.10.json) — additionally maps individual users to cost centers or products via a lookup table, and adds support for Query, Workflow, Functions, and Real User Monitoring (Real User Monitoring, Real User Monitoring with Session Replay, Real User Monitoring Property). Requires setting up a notebook and a workflow.
 
 2. **Import the Dashboard:**
    - Open the **Dashboards** app in your Dynatrace environment.
    - Click on **Import dashboard** and upload the downloaded JSON file.
-   - **If you downloaded the version with Query, Workflow & Functions support**, also import the helper notebook:
+   - **If you downloaded the extended version**, also import the helper notebook:
      - Open the **Notebooks** app in your Dynatrace environment.
      - Click on **Import notebook** and upload the helper notebook JSON file.
      - Follow the instructions at the top of the notebook to create a lookup table that maps users to a cost center or product.
