@@ -36,20 +36,20 @@
     "currencyCode": "USD"
   },
   {
-    "key": "CODE_MONITORING",
-    "name": "Code Monitoring",
-    "price": "500.00",
-    "Category": "Container Observability",
-    "unitName": "Container-hour",
-    "priceUnit": "100000",
-    "currencyCode": "USD"
-  },
-  {
     "key": "KUBERNETES_OPERATIONS",
     "name": "Kubernetes Platform Monitoring",
     "price": "200.00",
     "Category": "Container Observability",
     "unitName": "pod-hours",
+    "priceUnit": "100000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "CODE_MONITORING",
+    "name": "Code Monitoring",
+    "price": "500.00",
+    "Category": "Container Observability",
+    "unitName": "Container-hour",
     "priceUnit": "100000",
     "currencyCode": "USD"
   },
@@ -81,7 +81,7 @@
     "currencyCode": "USD"
   },
   {
-    "key": "LOG_MANAGEMENT_RETAIN_QUERY_INCLUDED",
+    "key": "LOG_MANAGEMENT_RETAIN_WIQ",
     "name": "Log Management & Analytics - Retain with Included Queries",
     "price": "20000.00",
     "Category": "Log Analytics",
@@ -90,8 +90,8 @@
     "currencyCode": "USD"
   },
   {
-    "key": "RUNTIME_APPLICATION_PROTECTION",
-    "name": "Runtime Application Protection",
+    "key": "RUNTIME_VULNERABILITY_ANALYTICS",
+    "name": "Runtime Vulnerability Analytics",
     "price": "225.00",
     "Category": "Application Security",
     "unitName": "memory-gibibyte-hours",
@@ -99,8 +99,8 @@
     "currencyCode": "USD"
   },
   {
-    "key": "RUNTIME_VULNERABILITY_ANALYTICS",
-    "name": "Runtime Vulnerability Analytics",
+    "key": "RUNTIME_APPLICATION_PROTECTION",
+    "name": "Runtime Application Protection",
     "price": "225.00",
     "Category": "Application Security",
     "unitName": "memory-gibibyte-hours",
@@ -117,20 +117,11 @@
     "currencyCode": "USD"
   },
   {
-    "key": "SYNTHETIC_MONITORING_BROWSER",
-    "name": "Browser Monitor or Clickpath",
-    "price": "450.00",
+    "key": "USER_SESSION_PROPERTIES",
+    "name": "Real User Monitoring Property",
+    "price": "10.00",
     "Category": "Digital Experience Monitoring",
-    "unitName": "synthetic actions",
-    "priceUnit": "100000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "SYNTHETIC_MONITORING_HTTP",
-    "name": "HTTP Monitor",
-    "price": "100.00",
-    "Category": "Digital Experience Monitoring",
-    "unitName": "synthetic requests",
+    "unitName": "properties per session",
     "priceUnit": "100000",
     "currencyCode": "USD"
   },
@@ -140,15 +131,6 @@
     "price": "225.00",
     "Category": "Digital Experience Monitoring",
     "unitName": "sessions",
-    "priceUnit": "100000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "USER_SESSION_PROPERTIES",
-    "name": "Real User Monitoring Property",
-    "price": "10.00",
-    "Category": "Digital Experience Monitoring",
-    "unitName": "properties per session",
     "priceUnit": "100000",
     "currencyCode": "USD"
   },
@@ -171,6 +153,24 @@
     "currencyCode": "USD"
   },
   {
+    "key": "SYNTHETIC_MONITORING_BROWSER",
+    "name": "Browser Monitor or Clickpath",
+    "price": "450.00",
+    "Category": "Digital Experience Monitoring",
+    "unitName": "synthetic actions",
+    "priceUnit": "100000",
+    "currencyCode": "USD"
+  },
+  {
+    "key": "SYNTHETIC_MONITORING_HTTP",
+    "name": "HTTP Monitor",
+    "price": "100.00",
+    "Category": "Digital Experience Monitoring",
+    "unitName": "synthetic requests",
+    "priceUnit": "100000",
+    "currencyCode": "USD"
+  },
+  {
     "key": "METRICS_INGEST",
     "name": "Metrics - Ingest & Process",
     "price": "150.00",
@@ -189,7 +189,7 @@
     "currencyCode": "USD"
   },
   {
-    "key": "METRICS_EXTENDED_RETAIN",
+    "key": "METRICS_RETAIN",
     "name": "Metrics - Retain",
     "price": "700.00",
     "Category": "Metrics powered by Grail",
@@ -252,15 +252,6 @@
     "currencyCode": "USD"
   },
   {
-    "key": "EVENTS_RETAIN",
-    "name": "Files - Retain",
-    "price": "700.00",
-    "Category": "Events powered by Grail",
-    "unitName": "gibibyte-days",
-    "priceUnit": "1000000",
-    "currencyCode": "USD"
-  },
-  {
     "key": "AUTOMATIONS",
     "name": "Automation Workflow",
     "price": "300.00",
@@ -271,7 +262,7 @@
   },
   {
     "key": "COMPUTE",
-    "name": "AppEngine Functions - Small",
+    "name": "Standard Function Call",
     "price": "1000.00",
     "Category": "AppEngine Functions",
     "unitName": "invocations",
@@ -321,51 +312,6 @@
     "Category": "Platform Extensions",
     "unitName": "invocations",
     "priceUnit": "100000000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "DATA_EGRESS",
-    "name": "Data Egress",
-    "price": "1000.00",
-    "Category": "Platform",
-    "unitName": "gibibytes",
-    "priceUnit": "10000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "DATABASE_MONITORING",
-    "name": "Database Monitoring",
-    "price": "4000.00",
-    "Category": "Application and Infrastructure Observability",
-    "unitName": "database-instance-hours",
-    "priceUnit": "100000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "AI_FUNCTIONS",
-    "name": "AI Units",
-    "price": "1000.00",
-    "Category": "AppEngine Functions",
-    "unitName": "AI units",
-    "priceUnit": "1000000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "DEM_RETAIN",
-    "name": "Digital Experience Monitoring - Retain",
-    "price": "4000.00",
-    "Category": "Digital Experience Monitoring",
-    "unitName": "gibibyte-days",
-    "priceUnit": "1000000",
-    "currencyCode": "USD"
-  },
-  {
-    "key": "DEM_QUERY",
-    "name": "Digital Experience Monitoring - Query",
-    "price": "3500.00",
-    "Category": "Digital Experience Monitoring",
-    "unitName": "gibibytes-scanned",
-    "priceUnit": "1000000",
     "currencyCode": "USD"
   }
 ]
