@@ -1,76 +1,389 @@
 Enabled capabilities
-Commitment period
-16. Apr. 2026 - 15. Apr. 2029
 
-Deployment type
-All
-
-Collapse all
+Collapse All
 Application and Infrastructure Observability
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Foundation & Discovery	SaaS	USD 1K	Per 100,000 host-hours
-Full-Stack Monitoring	SaaS	USD 1K	Per 100,000 memory-gibibyte-hours
-Infrastructure Monitoring	SaaS	USD 4K	Per 100,000 host-hours
-Mainframe Monitoring	SaaS	USD 1K	Per 10,000 MSU-hours
+Foundation & Discovery
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 100,000 host-hours
+SaaS
+Foundation & Discovery
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 100,000 host-hours
+Managed
+Full-Stack Monitoring
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+SaaS
+Full-Stack Monitoring
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+Managed
+Infrastructure Monitoring
+4/1/2025
+3/31/2028
+USD 4000.00
+Q-123456
+Per 100,000 host-hours
+SaaS
+Infrastructure Monitoring
+4/1/2025
+3/31/2028
+USD 4000.00
+Q-123456
+Per 100,000 host-hours
+Managed
+Mainframe Monitoring
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 10,000 MSU-hours
+SaaS
+Mainframe Monitoring
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 10,000 MSU-hours
+Managed
 Container Observability
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Code Monitoring	SaaS	USD 500.00	Per 100,000 Container-hours
-Kubernetes Platform Monitoring	SaaS	USD 200.00	Per 100,000 pod-hours
+Kubernetes Platform Monitoring
+4/1/2025
+3/31/2028
+USD 200.00
+Q-123456
+Per 100,000 pod-hours
+SaaS
+Code Monitoring
+4/1/2025
+3/31/2028
+USD 500.00
+Q-123456
+Per 100,000 Container-hours
+SaaS
 Log Analytics
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Log Management & Analytics - Ingest & Process	SaaS	USD 2K	Per 10,000 gibibytes
-Log Management & Analytics - Query	SaaS	USD 3.5K	Per 1,000,000 gibibytes-scanned
-Log Management & Analytics - Retain	SaaS	USD 700.00	Per 1,000,000 gibibyte-days
-Log Management & Analytics - Retain with Included Queries	SaaS	USD 20K	Per 1,000,000 gibibyte-days
+Log Management & Analytics - Ingest & Process
+4/1/2025
+3/31/2028
+USD 2000.00
+Q-123456
+Per 10,000 gibibytes
+SaaS
+Log Management & Analytics - Query
+4/1/2025
+3/31/2028
+USD 3500.00
+Q-123456
+Per 1,000,000 gibibytes-scanned
+SaaS
+Log Management & Analytics - Retain
+4/1/2025
+3/31/2028
+USD 700.00
+Q-123456
+Per 1,000,000 gibibyte-days
+SaaS
+Log Management & Analytics - Retain with Included Queries
+4/1/2025
+3/31/2028
+USD 20.00K
+Q-123456
+Per 1,000,000 gibibyte-days
+SaaS
 Application Security
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Runtime Application Protection	SaaS	USD 225.00	Per 100,000 memory-gibibyte-hours
-Runtime Vulnerability Analytics	SaaS	USD 225.00	Per 100,000 memory-gibibyte-hours
-Security Posture Management	SaaS	USD 700.00	Per 100,000 host-hours
+Runtime Vulnerability Analytics
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+SaaS
+Runtime Vulnerability Analytics
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+Managed
+Runtime Application Protection
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+SaaS
+Runtime Application Protection
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 memory-gibibyte-hours
+Managed
+Security Posture Management
+4/1/2025
+3/31/2028
+USD 700.00
+Q-123456
+Per 100,000 host-hours
+SaaS
 Digital Experience Monitoring
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Browser Monitor or Clickpath	SaaS	USD 450.00	Per 100,000 synthetic actions
-HTTP Monitor	SaaS	USD 100.00	Per 100,000 synthetic requests
-Real User Monitoring	SaaS	USD 225.00	Per 100,000 sessions
-Real User Monitoring Property	SaaS	USD 10.00	Per 100,000 property-sessions
-Real User Monitoring with Session Replay	SaaS	USD 450.00	Per 100,000 session replay captures
-Third-Party Synthetic API Ingestion	SaaS	USD 100.00	Per 100,000 third-party synthetic results
+Real User Monitoring Property
+4/1/2025
+3/31/2028
+USD 10.00
+Q-123456
+Per 100,000 property-sessions
+SaaS
+Real User Monitoring Property
+4/1/2025
+3/31/2028
+USD 10.00
+Q-123456
+Per 100,000 property-sessions
+Managed
+Real User Monitoring
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 sessions
+SaaS
+Real User Monitoring
+4/1/2025
+3/31/2028
+USD 225.00
+Q-123456
+Per 100,000 sessions
+Managed
+Real User Monitoring with Session Replay
+4/1/2025
+3/31/2028
+USD 450.00
+Q-123456
+Per 100,000 session replay captures
+SaaS
+Real User Monitoring with Session Replay
+4/1/2025
+3/31/2028
+USD 450.00
+Q-123456
+Per 100,000 session replay captures
+Managed
+Third-Party Synthetic API Ingestion
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000 third-party synthetic results
+SaaS
+Third-Party Synthetic API Ingestion
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000 third-party synthetic results
+Managed
+Browser Monitor or Clickpath
+4/1/2025
+3/31/2028
+USD 450.00
+Q-123456
+Per 100,000 synthetic actions
+SaaS
+Browser Monitor or Clickpath
+4/1/2025
+3/31/2028
+USD 450.00
+Q-123456
+Per 100,000 synthetic actions
+Managed
+HTTP Monitor
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000 synthetic requests
+SaaS
+HTTP Monitor
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000 synthetic requests
+Managed
 Metrics powered by Grail
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Metrics - Ingest & Process	SaaS	USD 150.00	Per 100,000,000 metric data points
-Metrics - Query	SaaS	USD 0.00	Per 1,000,000 gibibytes-scanned
-Metrics - Retain	SaaS	USD 700.00	Per 1,000,000 gibibyte-days
+Metrics - Ingest & Process
+4/1/2025
+3/31/2028
+USD 150.00
+Q-123456
+Per 100,000,000 metric data points
+SaaS
+Metrics - Query
+4/1/2025
+3/31/2028
+USD 0.00
+Q-123456
+Per 1,000,000 gibibytes-scanned
+SaaS
+Metrics - Retain
+4/1/2025
+3/31/2028
+USD 700.00
+Q-123456
+Per 1,000,000 gibibyte-days
+SaaS
 Traces powered by Grail
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Traces - Ingest & Process	SaaS	USD 2K	Per 10,000 gibibytes
-Traces - Query	SaaS	USD 3.5K	Per 1,000,000 gibibytes-scanned
-Traces - Retain	SaaS	USD 700.00	Per 1,000,000 gibibyte-days
+Traces - Ingest & Process
+4/1/2025
+3/31/2028
+USD 2000.00
+Q-123456
+Per 10,000 gibibytes
+SaaS
+Traces - Query
+4/1/2025
+3/31/2028
+USD 3500.00
+Q-123456
+Per 1,000,000 gibibytes-scanned
+SaaS
+Traces - Retain
+4/1/2025
+3/31/2028
+USD 700.00
+Q-123456
+Per 1,000,000 gibibyte-days
+SaaS
 Events powered by Grail
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Events - Ingest & Process	SaaS	USD 2K	Per 10,000 gibibytes
-Events - Query	SaaS	USD 3.5K	Per 1,000,000 gibibytes-scanned
-Events - Retain	SaaS	USD 700.00	Per 1,000,000 gibibyte-days
+Events - Ingest & Process
+4/1/2025
+3/31/2028
+USD 2000.00
+Q-123456
+Per 10,000 gibibytes
+SaaS
+Events - Query
+4/1/2025
+3/31/2028
+USD 3500.00
+Q-123456
+Per 1,000,000 gibibytes-scanned
+SaaS
+Events - Retain
+4/1/2025
+3/31/2028
+USD 700.00
+Q-123456
+Per 1,000,000 gibibyte-days
+SaaS
 Automation
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Automation Workflow	SaaS	USD 300.00	Per 10,000 workflow-hours
-AppEngine Functions
+Automation Workflow
+4/1/2025
+3/31/2028
+USD 300.00
+Q-123456
+Per 10,000 workflow-hours
+SaaS
+Agentic AppEngine
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-AppEngine Functions - Small	SaaS	USD 1K	Per 1,000,000 invocations
+Standard Function Call
+4/1/2025
+3/31/2028
+USD 1000.00
+Q-123456
+Per 1,000,000 invocations
+SaaS
 Platform Extensions
 
-Name	Deployment Type	Unit price (USD)	Unit of measure
-Custom Events Classic	SaaS	USD 200.00	Per 100,000,000 custom events
-Custom Metrics Classic	SaaS	USD 200.00	Per 100,000,000 metric data points
-Custom Traces Classic	SaaS	USD 140.00	Per 100,000,000 spans
-Log Monitoring Classic	SaaS	USD 100.00	Per 100,000,000 log records
-Serverless Functions Classic	SaaS	USD 400.00	Per 100,000,000 invocations
+Custom Events Classic
+4/1/2025
+3/31/2028
+USD 200.00
+Q-123456
+Per 100,000,000 custom events
+SaaS
+Custom Events Classic
+4/1/2025
+3/31/2028
+USD 200.00
+Q-123456
+Per 100,000,000 custom events
+Managed
+Custom Metrics Classic
+4/1/2025
+3/31/2028
+USD 200.00
+Q-123456
+Per 100,000,000 metric data points
+SaaS
+Custom Metrics Classic
+4/1/2025
+3/31/2028
+USD 200.00
+Q-123456
+Per 100,000,000 metric data points
+Managed
+Custom Traces Classic
+4/1/2025
+3/31/2028
+USD 140.00
+Q-123456
+Per 100,000,000 spans
+SaaS
+Custom Traces Classic
+4/1/2025
+3/31/2028
+USD 140.00
+Q-123456
+Per 100,000,000 spans
+Managed
+Log Monitoring Classic
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000,000 log records
+SaaS
+Log Monitoring Classic
+4/1/2025
+3/31/2028
+USD 100.00
+Q-123456
+Per 100,000,000 log records
+Managed
+Serverless Functions Classic
+4/1/2025
+3/31/2028
+USD 400.00
+Q-123456
+Per 100,000,000 invocations
+SaaS
+Serverless Functions Classic
+4/1/2025
+3/31/2028
+USD 400.00
+Q-123456
+Per 100,000,000 invocations
+Managed
