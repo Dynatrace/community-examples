@@ -1,14 +1,25 @@
 /**
  * Converts AMP-ratecard.txt to ratecard.json.
  * Output format mirrors the formattedRateCard structure produced by workflow.js.
+ *
+ * Expected input format: paste the rate card table from the Account Management Portal.
+ * Each capability entry spans 7 lines:
+ *   1. Capability name
+ *   2. Start date  (MM/DD/YYYY)
+ *   3. End date    (MM/DD/YYYY)
+ *   4. Price       (e.g. "USD 200.00" or "USD 4.00K")
+ *   5. Quote ID    (e.g. "Q-410754")
+ *   6. Unit        (e.g. "Per 100,000 host-hours")
+ *   7. Deployment  (SaaS or Managed)
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Maps item names from the txt file to capability keys (same keys used in workflow.js)
+// Maps item names from the AMP page to capability keys (same keys used in workflow.js)
 const nameToKey = {
   "AppEngine Functions - Small":                          "COMPUTE",
+  "Standard Function Call":                               "COMPUTE",
   "Automation Workflow":                                  "AUTOMATIONS",
   "Browser Monitor or Clickpath":                         "SYNTHETIC_MONITORING_BROWSER",
   "HTTP Monitor":                                         "SYNTHETIC_MONITORING_HTTP",
@@ -84,94 +95,80 @@ const template = {
   "TRACE_RETAIN":                   { Category: "Traces powered by Grail",                   unitName: "gibibyte-days" },
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parsePrice(raw) {
+  let s = raw.trim().replace(/,/g, '');
+  const kMatch = s.match(/^(\d+(?:\.\d+)?)K$/i);
+  if (kMatch) return (Number.parseFloat(kMatch[1]) * 1000).toFixed(2);
+  const n = Number.parseFloat(s);
+  return Number.isNaN(n) ? s : n.toFixed(2);
+}
+
+const DATE_RE       = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+const PRICE_LINE_RE = /^([A-Z]{3})\s+([\d.,]+(?:[KkMm])?)$/;
+const QUOTE_RE      = /^Q-\d+/;
+const UNIT_RE       = /^Per\s+/i;
+
 // ── Parse ─────────────────────────────────────────────────────────────────────
 
 const inputPath  = path.join(__dirname, 'AMP-ratecard.txt');
 const outputPath = path.join(__dirname, 'price-point.json');
 
 const text  = fs.readFileSync(inputPath, 'utf8');
-const lines = text.split(/\r?\n/);
-
-// Extract currency code from the column header "Unit price (XXX)"
-const currencyMatch = text.match(/Unit price \(([A-Z]{3})\)/);
-if (!currencyMatch) {
-  console.error('Could not detect currency code from "Unit price (XXX)" column header. Check AMP-ratecard.txt.');
-  process.exit(1);
-}
-const currencyCode = currencyMatch[1];
-console.log(`Detected currency: ${currencyCode}`);
-
-function parsePrice(rawPrice, detectedCurrencyCode) {
-  let normalized = rawPrice.trim();
-
-  // Remove leading currency code (for example "USD 1.2K" -> "1.2K").
-  const currencyPrefix = new RegExp(`^${detectedCurrencyCode}\\s+`, 'i');
-  normalized = normalized.replace(currencyPrefix, '');
-
-  // Fallback for unexpected currency code variants.
-  normalized = normalized.replace(/^[A-Z]{3}\s+/i, '');
-
-  // Remove thousand separators before numeric conversion.
-  normalized = normalized.replace(/,/g, '');
-
-  // Expand shorthand thousands (for example "1.2K" -> "1200.00").
-  const kMatch = normalized.match(/^(\d+(?:\.\d+)?)K$/i);
-  if (kMatch) {
-    return (Number.parseFloat(kMatch[1]) * 1000).toFixed(2);
-  }
-
-  const numericValue = Number.parseFloat(normalized);
-  if (Number.isNaN(numericValue)) {
-    return normalized;
-  }
-
-  return numericValue.toFixed(2);
-}
+const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
 
 const formattedRateCard = [];
 const seen = new Set();
+let detectedCurrency = null;
 
-for (const rawLine of lines) {
-  const parts = rawLine.split('\t');
+let i = 0;
+while (i < lines.length) {
+  const name = lines[i];
+  const key  = nameToKey[name];
 
-  // Data rows have exactly 4 tab-separated columns
-  if (parts.length !== 4) continue;
+  if (!key) { i++; continue; }
 
-  const [name, , priceRaw, unitOfMeasure] = parts.map(p => p.trim());
+  // Look for a valid 7-line block starting at i
+  if (i + 6 >= lines.length) { i++; continue; }
 
-  // Skip the column header row
-  if (name === 'Name') continue;
+  const startDate  = lines[i + 1];
+  const endDate    = lines[i + 2];
+  const priceLine  = lines[i + 3];
+  const quoteLine  = lines[i + 4];
+  const unitLine   = lines[i + 5];
+  // lines[i + 6] is deployment type (SaaS / Managed) — not used in output
 
-  const key = nameToKey[name];
+  const priceMatch = priceLine.match(PRICE_LINE_RE);
 
-  if (!key) {
-    console.warn(`No key mapping found for: "${name}" — skipped`);
+  if (
+    !DATE_RE.test(startDate) ||
+    !DATE_RE.test(endDate)   ||
+    !priceMatch              ||
+    !QUOTE_RE.test(quoteLine)||
+    !UNIT_RE.test(unitLine)
+  ) {
+    i++;
     continue;
   }
 
-  // Deduplicate (same logic as workflow.js)
-  if (seen.has(key)) continue;
-  seen.add(key);
+  const currencyCode = priceMatch[1];
+  if (!detectedCurrency) detectedCurrency = currencyCode;
 
-  // Price: remove currency prefix and normalize shorthand values.
-  const price = parsePrice(priceRaw, currencyCode);
+  const price = parsePrice(priceMatch[2]);
 
-  // priceUnit: first number group in unit-of-measure string ("Per 1,000,000 invocations" → "1000000")
-  const priceUnitMatch = unitOfMeasure.match(/[\d,]+/);
+  const priceUnitMatch = unitLine.match(/[\d,]+/);
   const priceUnit = priceUnitMatch ? priceUnitMatch[0].replace(/,/g, '') : '1';
 
-  const meta = template[key] || { Category: 'Uncategorized', unitName: 'units' };
+  if (!seen.has(key)) {
+    seen.add(key);
+    const meta = template[key] || { Category: 'Uncategorized', unitName: 'units' };
+    formattedRateCard.push({ key, name, price, Category: meta.Category, unitName: meta.unitName, priceUnit, currencyCode });
+  }
 
-  formattedRateCard.push({
-    key,
-    name,
-    price,
-    Category: meta.Category,
-    unitName: meta.unitName,
-    priceUnit,
-    currencyCode,
-  });
+  i += 7;
 }
 
+if (detectedCurrency) console.log(`Detected currency: ${detectedCurrency}`);
 fs.writeFileSync(outputPath, JSON.stringify(formattedRateCard, null, 2), 'utf8');
 console.log(`✓ Wrote ${formattedRateCard.length} items to ${outputPath}`);

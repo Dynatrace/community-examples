@@ -105,8 +105,8 @@ Each entry looks like this:
 Use the included `convert-ratecard.js` script to produce the JSON automatically from your contract rate card:
 
 1. Log in to your **Dynatrace Account Management Portal** and navigate to the rate card section. See `pricing-page.png` in this folder for the expected page layout.
-2. Select and copy the full rate card table text.
-3. Paste it into `AMP-ratecard.txt` (replacing any existing content), keeping the tab-separated format with four columns: **Name**, **Deployment Type**, **Unit price**, **Unit of measure**.
+2. Select and copy the full rate card table text (the "Enabled capabilities" section).
+3. Paste it into `AMP-ratecard.txt` (replacing any existing content).
 4. Run the converter:
    ```bash
    node convert-ratecard.js
