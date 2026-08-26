@@ -35,8 +35,7 @@ Built for platform owners, Dynatrace administrators, and Center-of-Excellence te
 2. Use **Upload** to import `Dynatrace Platform Adoption.json`.
 3. That's it — the dashboard reads your own environment's audit telemetry live. There are no hard-coded IDs or environment-specific settings, so it works out of the box.
 
-## 👤 Author
-Contributed by **Vishruth Harithsa** ([@theharithsa](https://github.com/theharithsa)).
+## 🔗 Origin
 Originally part of [dynatrace-oss/CustomerSuccess](https://github.com/dynatrace-oss/CustomerSuccess).
 
 ## 🗒️ Changelog

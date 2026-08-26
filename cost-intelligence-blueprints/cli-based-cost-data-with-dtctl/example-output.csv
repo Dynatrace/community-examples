@@ -1,0 +1,11 @@
+Cost,Usage (GiB/h),day,dt.cost.costcenter,dt.cost.product,event.type
+6.562987499999999,10938.3125,2026-06-17,research-and-development/RnD,easytravel-VMware,Full-Stack Monitoring
+8.820675,14701.125,2026-06-18,quality-assurance/QA,stock-market-application,Full-Stack Monitoring
+8.657475,14429.125,2026-06-19,it-support-services/IT,warehouse-wizard,Full-Stack Monitoring
+8.698799999999999,14498,2026-06-20,research-and-development/RnD,easytravel-AWS,Full-Stack Monitoring
+8.698799999999999,14498,2026-06-21,research-and-development/RnD,easytravel-AWS,Full-Stack Monitoring
+8.6239125,14373.1875,2026-06-22,business-intelligence/BI,fin-ops-application,Full-Stack Monitoring
+8.5872,14312,2026-06-23,research-and-development/RnD,easytravel-AWS,Full-Stack Monitoring
+8.5872,14312,2026-06-24,research-and-development/RnD,easytravel-AWS,Full-Stack Monitoring
+8.625,14375,2026-06-25,quality-assurance/QA,stock-market-application,Full-Stack Monitoring
+8.776425,14627.375,2026-06-26,it-support-services/IT,warehouse-wizard,Full-Stack Monitoring

@@ -24,11 +24,13 @@ Unified observability for **pipelines, jobs, stages and PRs** across multiple CI
 
 ## 🚀 Install the app on the Dynatrace platform
 
-*CI/CD Observability is available as a Dynatrace app to all customers upon request. Please contact your Dynatrace representative to activate CI/CD Observability for your tenant.*
+*CI/CD Observability is available as a Dynatrace app to all customers upon request.*
 
-- Once installed, open the app and navigate to the Setup tab to find your target technology. Follow the instructions to Set up the webhooks on the chosen provider
-- Select Import Configuration to import the Openpipeline rules to your environment. Those rules basically translate the incoming webhook events into SDLC Events (OpenTelemetry Standard), which are then consumed by the app.
-- Start exploring data
+1. *CI/CD Observability* is delivered via a [Hub subscription](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Email [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) with your account name and tenant ID, as described [here](https://github.com/Dynatrace/community-examples/blob/main/dynatrace-apps/README.md).
+2. We'll process your request and send instructions for subscribing to the channel and installing the app.
+3. After installation, open the app and navigate to the Setup tab to find your target technology. Follow the instructions to Set up the webhooks on the chosen provider
+4. Select Import Configuration to import the Openpipeline rules to your environment. Those rules basically translate the incoming webhook events into SDLC Events (OpenTelemetry Standard), which are then consumed by the app.
+5. Start exploring data
 *Note: Filters are only applied after clicking the refresh button to avoid unnecessary queries*
 
 ## 🖥️ Using the App

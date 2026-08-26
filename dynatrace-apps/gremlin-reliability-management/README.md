@@ -18,8 +18,10 @@ Once installed, Gremlin data shows up next to the services you already monitor i
 
 ## 🚀 Install the app on the Dynatrace platform
 
-1. You need to add the app to your tenant first. Gremlin Reliability Management is delivered via a so-called [Hub subscription](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Please send us an email to [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) including your account name and tenant ID.
-2. Once we've processed your request, you'll receive detailed instructions on how to subscribe to the channel and install the app.
+*Gremlin Reliability Management is available as a Dynatrace app to all customers upon request.*
+
+1. *Gremlin Reliability Management* is delivered via a [Hub subscription](https://docs.dynatrace.com/docs/shortlink/hub#add-subscription). Email [community-apps@dynatrace.com](mailto:community-apps@dynatrace.com) with your account name and tenant ID, as described [here](https://github.com/Dynatrace/community-examples/blob/main/dynatrace-apps/README.md).
+2. We'll process your request and send instructions for subscribing to the channel and installing the app.
 
 ## ⚙️ Configuration
 
