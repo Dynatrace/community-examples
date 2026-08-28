@@ -16,4 +16,4 @@ Solutions that contain a notebook but live in another folder (because their prim
 
 - [Cost Allocation](../dashboards/cost-allocation/) — Dashboard + Notebook (the dashboard ships with a Notebook helper)
 
-*(See [STANDARDS.md §7](../STANDARDS.md#7-hybrid-solutions--cross-linking) for how cross-linking works.)*
+*(See [STANDARDS.md §6](../STANDARDS.md#6-hybrid-solutions--cross-linking) for how cross-linking works.)*

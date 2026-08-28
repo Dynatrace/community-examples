@@ -21,6 +21,7 @@ The repository is organized by artifact category. Each folder has its own README
 | [`launchpads/`](./launchpads) | 🚀 **Launchpads** | Curated launchpads that guide users to the right apps and dashboards. |
 | [`agentic-ecosystem/`](./agentic-ecosystem) | ✨ **Agentic Ecosystem** | Agent definitions, prompts, and workflow templates to jump-start Agentic AI use cases. |
 | [`configuration-as-code/`](./configuration-as-code) | ⚙️ **Configuration as Code** | Monaco / Terraform examples for automating configuration management. |
+| [`workflows/`](./workflows) | 🔁 **Workflows** | Standalone Dynatrace Automation workflows — not tied to a specific dashboard or blueprint. |
 | [`dynatrace-apps/`](./dynatrace-apps) | 🧩 **Apps** | An **index** of full Dynatrace Apps (AI workflow connectors, CI/CD Observability, Cloud SRE Agents). Consumers install these via the **Hub**, not from this repo — each entry links to its Hub listing. |
 | [`observability-blueprints/`](./observability-blueprints) | 🗺 **Observability Blueprints** | End-to-end reference setups that combine multiple artifacts into a complete solution for a scenario. |
 | [`cost-intelligence-blueprints/`](./cost-intelligence-blueprints) | 💰 **Cost Intelligence Blueprints** | End-to-end solutions for DPS cost visibility, budget alerting, and cost optimization using the Account Management API, workflows, and Grail. |

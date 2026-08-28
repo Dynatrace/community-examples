@@ -16,4 +16,4 @@ Solutions that contain a launchpad but live in another folder. The link points t
 
 - _None yet._
 
-*(See [STANDARDS.md §7](../STANDARDS.md#7-hybrid-solutions--cross-linking) for how cross-linking works.)*
+*(See [STANDARDS.md §6](../STANDARDS.md#6-hybrid-solutions--cross-linking) for how cross-linking works.)*
