@@ -12,7 +12,7 @@ Each solution goes in **one subfolder** inside its category folder:
 <category>/<solution-name>/
 ```
 
-Categories: `dynatrace-apps/` · `dashboards/` · `notebooks/` · `launchpads/` · `agentic-ecosystem/` · `configuration-as-code/` · `observability-blueprints/` · `cost-intelligence-blueprints/`
+Categories: `dynatrace-apps/` · `dashboards/` · `notebooks/` · `launchpads/` · `agentic-ecosystem/` · `configuration-as-code/` · `workflows/` · `observability-blueprints/` · `cost-intelligence-blueprints/`
 
 > **Apps note:** Consumers install apps via the Dynatrace Hub, not from this repo. The `dynatrace-apps/` folder is an **index** — each app subfolder holds a README that describes the app and links to its Hub listing. It does not store the app's source code.
 
@@ -47,8 +47,8 @@ Placed at the very top of the README. This powers future search/filtering in the
 ```yaml
 ---
 title: Order Fulfillment – Business Observability
-category: Dashboards, Notebooks & Launchpads   # Apps | Dashboards, Notebooks & Launchpads | Agentic | Config as Code | Blueprints
-type: Dashboard              # primary artifact: Dashboard | Notebook | Launchpad | App | Agent | Config | Blueprint
+category: Dashboards, Notebooks & Launchpads   # Apps | Dashboards, Notebooks & Launchpads | Agentic | Config as Code | Workflows | Blueprints
+type: Dashboard              # primary artifact: Dashboard | Notebook | Launchpad | App | Agent | Config | Workflow | Blueprint
 also_includes: []            # other artifact types in this solution, e.g. [Notebook] — drives cross-linking
 tags: [business-observability, logs, order-management, retail]
 verticals: [retail, e-commerce]   # optional
