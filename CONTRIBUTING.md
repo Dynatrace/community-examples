@@ -20,13 +20,12 @@ Every solution, regardless of category, should be:
 - **Self-service documentation** — a README that lets someone adopt it without asking the author.
 
 Per category:
-
-- 📊 **Dashboards, Notebooks & Launchpads** — meaningful layout and actionable insights, not walls of metrics.
 - ✨ **Agentic** — clear intent and boundaries; destructive actions require explicit confirmation; tools/permissions documented.
-- ⚙️ **Config as Code** — fully parameterized; clearly states what it creates or modifies.
-- 🔁 **Workflows** — a working export (not a screenshot); states its trigger, inputs, and what it does end-to-end.
 - 🧩 **Apps** — follows the Strato design system and current patterns; requests only the permissions it needs; provides a support path.
 - 🗺 **Blueprints** — lists every component and how they fit together, with a complete end-to-end setup path.
+- ⚙️ **Config as Code** — fully parameterized; clearly states what it creates or modifies.
+- 📊 **Dashboards, Notebooks & Launchpads** — meaningful layout and actionable insights, not walls of metrics.
+- 🔁 **Workflows** — a working export (not a screenshot); states its trigger, inputs, and what it does end-to-ed.
 
 ## Repository standards
 
