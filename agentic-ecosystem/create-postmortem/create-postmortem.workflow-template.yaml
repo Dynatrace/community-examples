@@ -1,0 +1,377 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3396.2
+    - id: dynatrace.davis.workflow.actions
+      version: ^1.10.1-dev.20260904T082413+888dabe0
+    - id: dynatrace.email
+      version: ^1.10.12-dev.20260902T065635+24171887
+  inputs: []
+workflow:
+  title: Create postmortem
+  description: Daily. Takes the most costly recently resolved incident, has agentic
+    AI draft the postmortem, builds a Dynatrace Notebook with the narrative plus supporting
+    charts and a link to the problem, and emails just the notebook link.
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: true
+      trigger:
+        cron: 30 6 * * *
+        type: cron
+      filterParameters: {}
+      timezone: Europe/Vienna
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    draft:
+      name: draft
+      input:
+        prompt: 'Write the postmortem draft for the most costly recently resolved
+          incident in the Dynatrace environment https://umsaywsjuo.dev.apps.dynatracelabs.com.
+          A human will edit and own it, so your job is to remove the blank page, not
+          to close the investigation. Your output goes into a Dynatrace Notebook,
+          so write markdown body content only.
+
+
+          DATASET A, the three most costly resolved incidents of the last three days,
+          longest first. Write the postmortem for the first row and mention the other
+          two only in the last section:
+
+          {{ result(''worst_incident'').records }}
+
+
+          DATASET B, how often each problem signature has occurred in the last 30
+          days, on how many separate days, and the total time lost. Use it to say
+          whether this incident was a one off or the latest instance of a chronic
+          pattern:
+
+          {{ result(''prior_occurrences'').records }}
+
+
+          If DATASET A is empty, reply with exactly one line: No resolved incidents
+          in the window. Nothing else.
+
+
+          Otherwise use exactly these section headings, each as a level 2 markdown
+          heading:
+
+
+          ## Timeline
+
+          A markdown table with columns: Time, Event. Use only what the data supports:
+          detection, start, end. Mark anything you cannot know from the data as Not
+          available in telemetry rather than inventing it.
+
+
+          ## Impact
+
+          Three sentences maximum on what was affected and for how long. Say plainly
+          if the data does not show customer impact.
+
+
+          ## Likely cause
+
+          Three sentences maximum, reasoned from the category, severity, impact level
+          and the affected entity type. State your confidence as high, medium or low,
+          and name the one piece of evidence that would raise it.
+
+
+          ## One off or chronic
+
+          One sentence with the numbers from DATASET B, then a verdict: one off, recurring,
+          or chronic. The charts below this section in the notebook show the same
+          signature over 30 days, so make your verdict consistent with a reader who
+          is about to look at them.
+
+
+          ## Corrective actions
+
+          A numbered list of three to five actions. Start each with a bold owner role
+          (for example **Service owner**, **Platform team**, **Monitoring owner**)
+          and end each with how you would verify it worked.
+
+
+          ## Also worth a look
+
+          One line each for the other two incidents in DATASET A, with their id, title
+          and duration.
+
+
+          Ground every claim in the two datasets and never invent an entity, a number,
+          a time or a cause that is not there.'
+        instruction: 'You are a senior site reliability engineer drafting a postmortem
+          for human review. Write GitHub flavoured markdown for a Dynatrace Notebook,
+          in English, under 650 words.
+
+
+          OUTPUT CONTRACT, follow exactly:
+
+          1. Do not print a document title, a date line, or an environment name. The
+          notebook already carries a title and a facts table above your text. Start
+          directly with the first heading.
+
+          2. Section headings are level 2 (##) with the exact wording given in the
+          task. No numbering prefixes in headings.
+
+          3. Every group of numbers goes in a markdown table with a header row.
+
+          4. Paragraphs are three sentences maximum. Never bold a whole sentence to
+          fake a heading.
+
+          5. Never use em dashes or en dashes anywhere. Use commas, colons, semicolons
+          or parentheses.
+
+          6. Durations in hours or minutes, never nanoseconds.
+
+          7. Never state a cause as fact when the data only supports a hypothesis.
+          Say what is unknown.
+
+          8. No filler, no restating the question, no sign off.
+
+
+          Refer to the product as Dynatrace Intelligence, never as Davis.'
+        outputFormat: ''
+        supplementary: ''
+        conversationId: ''
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 2
+      conditions:
+        states:
+          worst_incident: OK
+          prior_occurrences: OK
+      description: Agentic AI writes the postmortem draft
+      predecessors:
+      - worst_incident
+      - prior_occurrences
+    mail_link:
+      name: mail_link
+      input:
+        cc: []
+        to: []
+        bcc: []
+        content: 'The postmortem for **{{ result(''create_notebook'').title }}** ({{
+          result(''create_notebook'').displayId }}, {{ result(''create_notebook'').durationMinutes
+          }} minutes) is drafted.
+
+
+          [Open the postmortem notebook]({{ result(''create_notebook'').url }})
+
+
+          [Open the problem]({{ result(''create_notebook'').problemUrl }})
+
+
+          The notebook holds the timeline, impact, likely cause, corrective actions
+          and the charts behind them. Draft only, a human owns the final postmortem.'
+        subject: 'Postmortem ready: {{ result(''create_notebook'').title }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 4
+      conditions:
+        else: SKIP
+        custom: '{{ result(''create_notebook'').created }}'
+        states:
+          create_notebook: OK
+      description: Email the notebook link
+      predecessors:
+      - create_notebook
+    worst_incident:
+      name: worst_incident
+      input:
+        query: 'fetch dt.davis.problems, from: -3d
+
+          | filter event.status == "CLOSED" and not dt.davis.is_duplicate and not
+          maintenance.is_under_maintenance
+
+          | dedup display_id
+
+          | filter event.category != "CUSTOM_ALERT"
+
+          | fieldsAdd dur = toDuration(toLong(resolved_problem_duration))
+
+          | fieldsAdd e = smartscape.affected_entities[0]
+
+          | fieldsAdd entity_name = e[name], entity_type = e[type]
+
+          | filter isNotNull(entity_name)
+
+          | fieldsAdd duration_minutes = round(dur / 1m, decimals: 1)
+
+          | fieldsAdd problem_title = arrayFirst(splitString(event.name, ":"))
+
+          | fields display_id, event.id, problem_title, event.category, event.severity,
+          entity_name, entity_type, event.start, event.end, duration_minutes, dt.davis.impact_level
+
+          | sort duration_minutes desc
+
+          | limit 3'
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: The most costly resolved incidents of the last three days
+      predecessors: []
+    create_notebook:
+      name: create_notebook
+      input:
+        script: "import { documentsClient } from '@dynatrace-sdk/client-document';\n\
+          import { execution, getWorkflowLink } from '@dynatrace-sdk/automation-utils';\n\
+          import { queryExecutionClient } from '@dynatrace-sdk/client-query';\n\n\
+          // A notebook chart only renders on open if the query result is stored in\
+          \ the\n// document. Without state.result the section falls back to the DQL\
+          \ editor and\n// the reader has to press Run, which is what happened before\
+          \ this was added.\nconst QUERY_SETTINGS = {\n  maxResultRecords: 1000,\n\
+          \  defaultScanLimitGbytes: 500,\n  maxResultMegaBytes: 1,\n  defaultSamplingRatio:\
+          \ 10,\n  enableSampling: false,\n};\n\nasync function runDql(dql) {\n  try\
+          \ {\n    let res = await queryExecutionClient.queryExecute({\n      body:\
+          \ { query: dql, requestTimeoutMilliseconds: 50000, enablePreview: false\
+          \ },\n    });\n    // Long queries come back RUNNING and have to be polled\
+          \ with the token.\n    let guard = 0;\n    while (res && res.state && res.state\
+          \ !== 'SUCCEEDED' && res.requestToken && guard < 20) {\n      guard++;\n\
+          \      res = await queryExecutionClient.queryPoll({\n        requestToken:\
+          \ res.requestToken,\n        requestTimeoutMilliseconds: 30000,\n      });\n\
+          \    }\n    return res && res.result ? res.result : null;\n  } catch (e)\
+          \ {\n    return null;\n  }\n}\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,\
+          \ function () {\n    return Math.floor(Math.random() * 16).toString(16);\n\
+          \  });\n}\n\nfunction dqlEscape(s) {\n  return String(s).replace(/\\\\/g,\
+          \ '\\\\\\\\').replace(/\"/g, '\\\\\"');\n}\n\nconst DAVIS_STATE = {\n  includeLogs:\
+          \ true,\n  davisVisualization: { isAvailable: true },\n};\n\n// Matches\
+          \ a verified working section. autoSelectVisualization plus empty\n// chartSettings\
+          \ lets the UI derive the axis mapping from the stored result,\n// which\
+          \ is what real notebooks do. Hand-built fieldMapping was not needed.\nasync\
+          \ function chartSection(title, dql, from, to, visualization, height) {\n\
+          \  const timeframe = { from: from, to: to };\n  const queryResult = await\
+          \ runDql(dql);\n  const state = {\n    input: { value: dql, timeframe: timeframe\
+          \ },\n    visualizationSettings: {\n      autoSelectVisualization: false,\n\
+          \      chartSettings: {},\n    },\n    querySettings: QUERY_SETTINGS,\n\
+          \    visualization: visualization,\n    davis: DAVIS_STATE,\n    state:\
+          \ 'success',\n  };\n  if (queryResult) {\n    state.result = {\n      code:\
+          \ 200,\n      value: queryResult,\n      notifications: [],\n      querySettings:\
+          \ QUERY_SETTINGS,\n      dateTime: new Date().toISOString(),\n      input:\
+          \ { value: dql, timeframe: timeframe },\n    };\n  }\n  return {\n    id:\
+          \ uuid(),\n    type: 'dql',\n    title: title,\n    showTitle: true,\n \
+          \   drilldownPath: [],\n    filterSegments: [],\n    previousFilterSegments:\
+          \ [],\n    showInput: false,\n    height: height || 320,\n    state: state,\n\
+          \  };\n}\n\nexport default async function () {\n  const ex = await execution();\n\
+          \  const envUrl = new URL(getWorkflowLink()).origin;\n\n  const incidentRes\
+          \ = await ex.result('worst_incident');\n  const draftRes = await ex.result('draft');\n\
+          \n  const records = (incidentRes && incidentRes.records) || [];\n  if (records.length\
+          \ === 0) {\n    return { created: false, reason: 'No resolved incidents\
+          \ yesterday.' };\n  }\n\n  const inc = records[0];\n  const title = inc['problem_title']\
+          \ || 'Incident';\n  const displayId = inc['display_id'] || '';\n  const\
+          \ eventId = inc['event.id'] || '';\n  const entity = inc['entity_name']\
+          \ || 'unknown entity';\n  const entityType = inc['entity_type'] || '';\n\
+          \  const category = inc['event.category'] || '';\n  const durationMin =\
+          \ inc['duration_minutes'];\n  const start = inc['event.start'];\n  const\
+          \ end = inc['event.end'];\n\n  const draftRaw = draftRes && (draftRes.text\
+          \ || draftRes);\n  const draftMarkdown =\n    typeof draftRaw === 'string'\
+          \ ? draftRaw : JSON.stringify(draftRaw, null, 2);\n\n  const problemUrl\
+          \ = eventId\n    ? envUrl + '/ui/apps/dynatrace.davis.problems/problem/'\
+          \ + encodeURIComponent(eventId)\n    : envUrl + '/ui/apps/dynatrace.davis.problems';\n\
+          \n  // Chart window: two hours either side of the incident. Long incidents\
+          \ get a\n  // coarser interval so the chart stays readable instead of thousands\
+          \ of points.\n  const startMs = new Date(start).getTime();\n  const endMs\
+          \ = end ? new Date(end).getTime() : startMs;\n  const fromIso = new Date(startMs\
+          \ - 2 * 3600 * 1000).toISOString();\n  const toIso = new Date(endMs + 2\
+          \ * 3600 * 1000).toISOString();\n  const windowHours = (endMs - startMs)\
+          \ / 3600000 + 4;\n  const interval = windowHours <= 12 ? '10m' : windowHours\
+          \ <= 168 ? '1h' : '6h';\n  const safeTitle = dqlEscape(title);\n  const\
+          \ safeEntity = dqlEscape(entity);\n\n  const facts = [\n    '# Postmortem:\
+          \ ' + title,\n    '',\n    '**Problem:** [' + (displayId || 'open in Problems')\
+          \ + '](' + problemUrl + ')',\n    '',\n    '| Field | Value |',\n    '|\
+          \ --- | --- |',\n    '| Problem id | ' + displayId + ' |',\n    '| Affected\
+          \ entity | ' + entity + (entityType ? ' (' + entityType + ')' : '') + '\
+          \ |',\n    '| Category | ' + category + ' |',\n    '| Started | ' + start\
+          \ + ' |',\n    '| Ended | ' + (end || 'not recorded') + ' |',\n    '| Duration\
+          \ | ' + durationMin + ' minutes |',\n    '',\n    'Draft generated automatically\
+          \ from telemetry. A human owns the final postmortem.',\n  ].join('\\n');\n\
+          \n  const sections = [\n    { id: uuid(), type: 'markdown', markdown: facts\
+          \ },\n    { id: uuid(), type: 'markdown', markdown: draftMarkdown },\n \
+          \   { id: uuid(), type: 'markdown', markdown: '## Evidence' },\n    await\
+          \ chartSection(\n      'Problems on ' + entity + ', last 30 days',\n   \
+          \   'fetch dt.davis.problems, from: -30d\\n' +\n        '| filter not dt.davis.is_duplicate\\\
+          n' +\n        '| dedup display_id\\n' +\n        '| expand smartscape.affected_entities\\\
+          n' +\n        '| fieldsAdd affected_entity = smartscape.affected_entities[name]\\\
+          n' +\n        '| filter affected_entity == \"' + safeEntity + '\"\\n' +\n\
+          \        '| makeTimeseries incidents = count(), interval: 1d',\n      'now()-30d',\n\
+          \      'now()',\n      'lineChart',\n      320,\n    ),\n    await chartSection(\n\
+          \      'How often this signature fired, last 30 days',\n      'fetch dt.davis.problems,\
+          \ from: -30d\\n' +\n        '| filter not dt.davis.is_duplicate\\n' +\n\
+          \        '| dedup display_id\\n' +\n        '| filter startsWith(event.name,\
+          \ \"' + safeTitle + '\")\\n' +\n        '| makeTimeseries incidents = count(),\
+          \ interval: 1d',\n      'now()-30d',\n      'now()',\n      'lineChart',\n\
+          \      320,\n    ),\n    await chartSection(\n      'Entities hit by this\
+          \ signature, last 30 days',\n      'fetch dt.davis.problems, from: -30d\\\
+          n' +\n        '| filter not dt.davis.is_duplicate\\n' +\n        '| dedup\
+          \ display_id\\n' +\n        '| filter startsWith(event.name, \"' + safeTitle\
+          \ + '\")\\n' +\n        '| fieldsAdd dur = toDuration(toLong(resolved_problem_duration))\\\
+          n' +\n        '| fieldsAdd e = smartscape.affected_entities[0]\\n' +\n \
+          \       '| fieldsAdd affected_entity = e[name]\\n' +\n        '| filter\
+          \ isNotNull(affected_entity)\\n' +\n        '| summarize incidents = count(),\
+          \ downtime = sum(dur), by: {affected_entity}\\n' +\n        '| fieldsAdd\
+          \ downtime_hours = round(downtime / 1h, decimals: 1)\\n' +\n        '| fieldsRemove\
+          \ downtime\\n' +\n        '| sort downtime_hours desc\\n' +\n        '|\
+          \ limit 10',\n      'now()-30d',\n      'now()',\n      'barChart',\n  \
+          \    360,\n    ),\n  ];\n\n  const content = {\n    version: '7',\n    defaultTimeframe:\
+          \ { from: 'now()-30d', to: 'now()' },\n    defaultSegments: [],\n    sections:\
+          \ sections,\n  };\n\n  const doc = await documentsClient.createDocument({\n\
+          \    body: {\n      name: 'Postmortem: ' + title + (displayId ? ' (' + displayId\
+          \ + ')' : ''),\n      type: 'notebook',\n      isPrivate: false,\n     \
+          \ content: new Blob([JSON.stringify(content)], { type: 'application/json'\
+          \ }),\n    },\n  });\n\n  return {\n    created: true,\n    id: doc.id,\n\
+          \    url: envUrl + '/ui/apps/dynatrace.notebooks/notebook/' + doc.id,\n\
+          \    title: title,\n    displayId: displayId,\n    problemUrl: problemUrl,\n\
+          \    durationMinutes: durationMin,\n  };\n}\n"
+      action: dynatrace.automations:run-javascript
+      timeout: 900
+      position:
+        x: 0
+        y: 3
+      conditions:
+        states:
+          draft: OK
+      description: 'Build the Dynatrace Notebook: narrative, problem link, supporting
+        charts'
+      predecessors:
+      - draft
+    prior_occurrences:
+      name: prior_occurrences
+      input:
+        query: 'fetch dt.davis.problems, from: -30d
+
+          | filter event.status == "CLOSED" and not dt.davis.is_duplicate
+
+          | dedup display_id
+
+          | fieldsAdd dur = toDuration(toLong(resolved_problem_duration))
+
+          | fieldsAdd day = formatTimestamp(event.start, format: "yyyy-MM-dd")
+
+          | fieldsAdd problem_title = arrayFirst(splitString(event.name, ":"))
+
+          | summarize occurrences = count(), active_days = countDistinctApprox(day),
+          total = sum(dur), by: {problem_title, event.category}
+
+          | fieldsAdd total_hours = round(total / 1h, decimals: 1)
+
+          | fieldsRemove total
+
+          | sort occurrences desc
+
+          | limit 30'
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 1
+        y: 1
+      description: How often the same signatures have hit in the last 30 days
+      predecessors: []

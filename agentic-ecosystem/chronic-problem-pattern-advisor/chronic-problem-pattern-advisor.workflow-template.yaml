@@ -1,0 +1,231 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3396.2
+    - id: dynatrace.davis.workflow.actions
+      version: ^1.10.1-dev.20260904T082413+888dabe0
+    - id: dynatrace.email
+      version: ^1.10.12-dev.20260902T065635+24171887
+  inputs: []
+workflow:
+  title: Chronic Problem Pattern Advisor
+  description: Weekly. Finds the chronic, repeating problem patterns of the last 30
+    days, has agentic AI diagnose them and recommend concrete optimizations, and mails
+    the result.
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: true
+      trigger:
+        cron: 0 7 * * 1
+        type: cron
+      filterParameters: {}
+      timezone: Europe/Vienna
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    advise:
+      name: advise
+      input:
+        prompt: 'You are reviewing 30 days of Dynatrace problem history for the environment
+          https://umsaywsjuo.dev.apps.dynatracelabs.com and writing the weekly optimization
+          review for its platform owner.
+
+
+          DATASET A, chronic patterns of the last 30 days, ranked by total downtime.
+          Each row is one problem signature (problem title plus affected entity type
+          plus category), with how often it fired, how many distinct entities it hit,
+          on how many separate days it was active, its total and median downtime,
+          and up to three example entities:
+
+          {{ result(''chronic_patterns'').records }}
+
+
+          DATASET B, the same signatures compared this week against the prior week.
+          Positive delta means the pattern is growing, negative means it is fading:
+
+          {{ result(''weekly_trend'').records }}
+
+
+          Use exactly these section headings, in this order, each as a level 3 markdown
+          heading:
+
+
+          ### The most expensive pattern
+
+          Three sentences on the single pattern that cost the most this month, with
+          its numbers, and whether it is growing or fading.
+
+
+          ### Top chronic patterns
+
+          A markdown table of the five most costly patterns with columns: Pattern,
+          Entity type, Occurrences (30d), Active days, Total downtime (h), Trend vs
+          prior week.
+
+
+          ### Diagnosis and fixes
+
+          One level 4 heading per pattern (#### followed by the pattern name), and
+          under each, at most two sentences of diagnosis then a bullet list of one
+          to three optimizations. Reason the diagnosis from the signature, the entity
+          type and the shape of the numbers: many occurrences on few entities across
+          many days points to a chronic defect or a threshold set too tight; a short
+          median downtime with very high counts points to flapping detection. Start
+          every optimization bullet with one of these labels in bold: FIX (remove
+          the underlying cause), TUNE (change a detection or alerting setting, name
+          the setting), SUPPRESS (maintenance window, filter or alerting profile change).
+          End each bullet with the evidence that would confirm the cause before acting.
+
+
+          ### Noise check
+
+          A markdown table with columns: Pattern, Per active day, Median downtime
+          (min), Verdict, Setting to change. Verdict is either Real impact or Detection
+          noise. Use the ratio of occurrences to active days and the median downtime
+          as your evidence.
+
+
+          ### What to do first
+
+          A numbered list of exactly three actions, one sentence each, each naming
+          the pattern it addresses and the expected effect.
+
+
+          Rules: ground every claim in the two datasets, quote the numbers you rely
+          on, and never invent an entity, a number or a root cause that is not in
+          the data. Where the data cannot support a conclusion, say what is missing
+          instead of guessing.'
+        instruction: 'You are a senior site reliability engineer. Write GitHub flavoured
+          markdown for an email, in English, under 700 words.
+
+
+          OUTPUT CONTRACT, follow exactly:
+
+          1. Do not print a document title, a date line, or an environment name. The
+          email subject already carries them. Start with the conclusion.
+
+          2. First line: one bold sentence, the single most important conclusion,
+          under 25 words.
+
+          3. Second element: a markdown table headed with the columns Metric, Value,
+          Why it matters. Three to five rows, the numbers a reader would want first.
+
+          4. Then exactly one blockquote line, starting with >, holding the one thing
+          to act on.
+
+          5. Section headings are level 3 (###) with the exact wording given in the
+          task. No numbering prefixes such as 1. or 2. in headings.
+
+          6. Every group of numbers goes in a markdown table with a header row, never
+          in a running sentence.
+
+          7. Paragraphs are three sentences maximum. Never bold a whole sentence to
+          fake a heading.
+
+          8. Never use em dashes or en dashes anywhere, including inside tables and
+          headings. Use commas, colons, semicolons or parentheses.
+
+          9. Durations in hours or minutes, never nanoseconds, rounded to one decimal.
+          Percentages to whole numbers.
+
+          10. No filler, no restating the question, no closing pleasantries, no sign
+          off.
+
+
+          Refer to the product as Dynatrace Intelligence, never as Davis.'
+        outputFormat: ''
+        supplementary: ''
+        conversationId: ''
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 2
+      conditions:
+        states:
+          weekly_trend: OK
+          chronic_patterns: OK
+      description: Agentic AI diagnoses the patterns and recommends optimizations
+      predecessors:
+      - chronic_patterns
+      - weekly_trend
+    mail_report:
+      name: mail_report
+      input:
+        cc: []
+        to: []
+        bcc: []
+        content: '{{ result(''advise'').text or result(''advise'') }}
+
+
+          ---
+
+
+          Generated by the Chronic Problem Pattern Advisor workflow on https://umsaywsjuo.dev.apps.dynatracelabs.com.
+
+          Execution: https://umsaywsjuo.dev.apps.dynatracelabs.com/ui/apps/dynatrace.automations/executions/{{
+          execution().id }}'
+        subject: Chronic Problem Pattern Advisor, 30 day review
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 3
+      conditions:
+        states:
+          advise: OK
+      description: Mail the review
+      predecessors:
+      - advise
+    weekly_trend:
+      name: weekly_trend
+      input:
+        query: "fetch dt.davis.problems, from: -14d\n| filter event.status == \"CLOSED\"\
+          \ and not dt.davis.is_duplicate and not maintenance.is_under_maintenance\n\
+          | dedup display_id\n| fieldsAdd e = smartscape.affected_entities[0]\n| fieldsAdd\
+          \ entity_type = e[type]\n| fieldsAdd period = if(event.start >= now() -\
+          \ 7d, \"this_week\", else: \"prior_week\")\n| summarize occurrences = count(),\
+          \ by: {event.name, entity_type, period}\n| summarize this_week = sum(if(period\
+          \ == \"this_week\", occurrences, else: 0)),\n            prior_week = sum(if(period\
+          \ == \"prior_week\", occurrences, else: 0)),\n            by: {event.name,\
+          \ entity_type}\n| fieldsAdd delta = this_week - prior_week\n| fieldsAdd\
+          \ swing = abs(delta)\n| filter this_week + prior_week >= 20\n| sort swing\
+          \ desc\n| limit 15"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 1
+        y: 1
+      description: Same signatures, this week against the prior week, to show whether
+        a pattern is growing or fading
+      predecessors: []
+    chronic_patterns:
+      name: chronic_patterns
+      input:
+        query: "fetch dt.davis.problems, from: -30d\n| filter event.status == \"CLOSED\"\
+          \ and not dt.davis.is_duplicate and not maintenance.is_under_maintenance\n\
+          | dedup display_id\n| fieldsAdd e = smartscape.affected_entities[0]\n| fieldsAdd\
+          \ entity_name = e[name], entity_type = e[type]\n| fieldsAdd dur = toDuration(toLong(resolved_problem_duration))\n\
+          | fieldsAdd day = formatTimestamp(event.start, format: \"yyyy-MM-dd\")\n\
+          | summarize occurrences = count(),\n            impacted_entities = countDistinctApprox(entity_name),\n\
+          \            active_days = countDistinctApprox(day),\n            total_downtime\
+          \ = sum(dur),\n            median_downtime = median(dur),\n            last_seen\
+          \ = max(event.start),\n            example_entities = collectDistinct(entity_name,\
+          \ maxLength: 3),\n            by: {event.name, entity_type, event.category}\n\
+          | filter occurrences >= 5\n| fieldsAdd total_downtime_hours = round(total_downtime\
+          \ / 1h, decimals: 1),\n            median_downtime_minutes = round(median_downtime\
+          \ / 1m, decimals: 1),\n            per_active_day = round(occurrences /\
+          \ active_days, decimals: 1)\n| fieldsRemove total_downtime, median_downtime\n\
+          | sort total_downtime_hours desc\n| limit 15"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: Top recurring problem signatures of the last 30 days, ranked by
+        total downtime
+      predecessors: []
