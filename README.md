@@ -14,19 +14,20 @@ The repository is organized by artifact category. Each folder has its own README
 
 ### 🟢 Ready to use & quick to contribute
 
-| Folder | Category | What you'll find |
+| Category | Folder | What you'll find |
 |--------|----------|------------------|
-| [`dashboards/`](./dashboards) | 📊 **Dashboards** | Ready-to-import dashboards for real use cases. |
-| [`notebooks/`](./notebooks) | 📓 **Notebooks** | Analysis notebooks that walk through an investigation or flow. |
-| [`launchpads/`](./launchpads) | 🚀 **Launchpads** | Curated launchpads that guide users to the right apps and dashboards. |
-| [`agentic-ecosystem/`](./agentic-ecosystem) | ✨ **Agentic Ecosystem** | Agent definitions, prompts, and workflow templates to jump-start Agentic AI use cases. |
-| [`configuration-as-code/`](./configuration-as-code) | ⚙️ **Configuration as Code** | Monaco / Terraform examples for automating configuration management. |
-| [`workflows/`](./workflows) | 🔁 **Workflows** | Standalone Dynatrace Automation workflows — not tied to a specific dashboard or blueprint. |
-| [`dynatrace-apps/`](./dynatrace-apps) | 🧩 **Apps** | An **index** of full Dynatrace Apps (AI workflow connectors, CI/CD Observability, Cloud SRE Agents). Consumers install these via the **Hub**, not from this repo — each entry links to its Hub listing. |
-| [`observability-blueprints/`](./observability-blueprints) | 🗺 **Observability Blueprints** | End-to-end reference setups that combine multiple artifacts into a complete solution for a scenario. |
-| [`cost-intelligence-blueprints/`](./cost-intelligence-blueprints) | 💰 **Cost Intelligence Blueprints** | End-to-end solutions for DPS cost visibility, budget alerting, and cost optimization using the Account Management API, workflows, and Grail. |
+| ✨ **Agentic Ecosystem** | [`agentic-ecosystem/`](./agentic-ecosystem) | Agent definitions, prompts, and workflow templates to jump-start Agentic AI use cases. |
+| 🧩 **Apps** | [`dynatrace-apps/`](./dynatrace-apps) | An **index** of full Dynatrace Apps (AI workflow connectors, CI/CD Observability, Cloud SRE Agents). Consumers install these via the **Hub**, not from this repo — each entry links to its Hub listing. |
+| ⚙️ **Configuration as Code** | [`configuration-as-code/`](./configuration-as-code) | Monaco / Terraform examples for automating configuration management. |
+| 💰 **Cost Intelligence Blueprints** | [`cost-intelligence-blueprints/`](./cost-intelligence-blueprints) | End-to-end solutions for DPS cost visibility, budget alerting, and cost optimization using the Account Management API, workflows, and Grail. |
+| 📊 **Dashboards** | [`dashboards/`](./dashboards) | Ready-to-import dashboards for real use cases. |
+| 🚀 **Launchpads** | [`launchpads/`](./launchpads) | Curated launchpads that guide users to the right apps and dashboards. |
+|📓 **Notebooks** |  [`notebooks/`](./notebooks) | Analysis notebooks that walk through an investigation or flow. |
+| 🗺 **Observability Blueprints** | [`observability-blueprints/`](./observability-blueprints) | End-to-end reference setups that combine multiple artifacts into a complete solution for a scenario. |
+| 🔁 **Workflows** | [`workflows/`](./workflows) | Standalone Dynatrace Automation workflows — not tied to a specific dashboard or blueprint. |
 
-> Dashboards, notebooks, and launchpads each have their own folder. A solution that combines several (e.g. a dashboard that drills into a notebook) lives under its **primary** artifact, with the other pieces in the same subfolder.
+
+> **Note:** Dashboards, notebooks, and launchpads each have their own folder. A solution that combines several (e.g. a dashboard that drills into a notebook) lives under its **primary** artifact, with the other pieces in the same subfolder.
 
 ---
 
