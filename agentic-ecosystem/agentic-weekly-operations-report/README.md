@@ -19,7 +19,7 @@ Every Monday morning, this workflow runs three DQL queries against `dt.davis.pro
 
 The agent isn't asked to summarize metrics. It's instructed to work out what changed, decide what's worth surfacing, and write a structured report: an executive one-liner, a "what moved" table, a "new and stopped" table (treating brand-new problem signatures as the highest-value finding even when their counts are small), a "where the time went" table, and exactly three prioritized next actions. It's told explicitly to skip a section if it's genuinely empty rather than pad a quiet week into a busy-sounding report, and to never invent a number or entity that isn't in the data. The finished report is emailed automatically.
 
-[Watch it run](https://video.dynatrace.com/watch/uX9fGyuCmX7dpejLAqwUwM)
+[![Watch it run](https://play.vidyard.com/uX9fGyuCmX7dpejLAqwUwM.jpg)](https://video.dynatrace.com/watch/uX9fGyuCmX7dpejLAqwUwM)
 
 > Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
 

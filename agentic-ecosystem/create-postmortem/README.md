@@ -19,7 +19,7 @@ Daily, this workflow queries `dt.davis.problems` for the most costly incidents r
 
 The draft, a problem link, and supporting charts are assembled into a Dynatrace Notebook, and only the notebook link is emailed out — not the full text — so the recipient opens the notebook to review and edit it in place.
 
-[Watch it run](https://video.dynatrace.com/watch/kJcCZ9mEAwfiaVdL2oxnFt)
+[![Watch it run](https://play.vidyard.com/kJcCZ9mEAwfiaVdL2oxnFt.jpg)](https://video.dynatrace.com/watch/kJcCZ9mEAwfiaVdL2oxnFt)
 
 > Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
 
