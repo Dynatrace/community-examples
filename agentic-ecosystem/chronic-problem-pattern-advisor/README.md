@@ -19,7 +19,7 @@ Weekly, this workflow runs two DQL queries against `dt.davis.problems`: the top 
 
 The agent classifies every signature as **FIX**, **TUNE**, or **SUPPRESS**, separating genuine flapping (many occurrences, short median duration) from real sustained impact, and states the specific evidence that would confirm the cause before anyone acts on it — rather than just handing over a ranked list. The recommendations are emailed automatically.
 
-[Watch it run](https://video.dynatrace.com/watch/AAkxcC3w3Q6VYpAYyrPz8s)
+[![Watch it run](https://play.vidyard.com/AAkxcC3w3Q6VYpAYyrPz8s.jpg)](https://video.dynatrace.com/watch/AAkxcC3w3Q6VYpAYyrPz8s)
 
 > Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
 
