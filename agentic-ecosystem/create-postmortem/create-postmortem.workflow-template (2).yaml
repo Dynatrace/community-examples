@@ -1,0 +1,513 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3396.2
+    - id: dynatrace.davis.workflow.actions
+      version: ^1.10.1-dev.20260915T095910+c3e3423f
+    - id: dynatrace.email
+      version: ^1.10.12-dev.20260915T065623+cde16a97
+  inputs: []
+workflow:
+  title: Create postmortem
+  description: 'Daily. Selects one resolved incident deterministically, then lets
+    the agentic step investigate it with its own tools: Davis root cause evidence,
+    logs in the incident window, Smartscape dependencies, 30 day history, and any
+    runbook that already exists. The agent returns a structured verdict; the workflow
+    decides from that verdict whether to build the notebook at all.'
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: false
+      trigger:
+        cron: 30 6 * * *
+        type: cron
+      filterParameters: {}
+      timezone: Europe/Vienna
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    gate:
+      name: gate
+      input:
+        script: "import { execution } from '@dynatrace-sdk/automation-utils';\n\n\
+          // The agent answers in natural language even when asked for JSON, so parse\n\
+          // defensively: strip code fences, take the outermost object, and fall back\
+          \ to\n// a safe default rather than failing the run. Branching on a parsed\
+          \ verdict is\n// what turns the agent from a text generator into a decision\
+          \ the workflow acts on.\nfunction parseVerdict(raw) {\n  if (raw == null)\
+          \ return null;\n  let text = typeof raw === 'string' ? raw : (raw.text ||\
+          \ JSON.stringify(raw));\n  text = String(text).trim();\n  text = text.replace(/^```(?:json)?/i,\
+          \ '').replace(/```$/, '').trim();\n  const first = text.indexOf('{');\n\
+          \  const last = text.lastIndexOf('}');\n  if (first === -1 || last === -1\
+          \ || last <= first) return null;\n  try {\n    return JSON.parse(text.slice(first,\
+          \ last + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nexport default\
+          \ async function () {\n  const ex = await execution();\n  const raw = await\
+          \ ex.result('verdict');\n  // The action returns { text, jsonOutput, conversationId\
+          \ }. With a schema in\n  // outputFormat the platform has already parsed\
+          \ the object into jsonOutput, so\n  // take it. The text parser stays as\
+          \ the fallback for a schemaless run.\n  const verdict = (raw && raw.jsonOutput)\
+          \ ? raw.jsonOutput : parseVerdict(raw);\n\n  if (!verdict) {\n    // A verdict\
+          \ that will not parse means the agentic step refused or broke. Proceeding\n\
+          \    // here is how a model's refusal gets mailed out dressed as a report,\
+          \ which is worse\n    // than sending nothing, so this branch stops and\
+          \ says what happened instead.\n    const raw_text = (raw && typeof raw ===\
+          \ 'object' && raw.text) ? String(raw.text) : String(raw || '');\n    return\
+          \ {\n      proceed: false,\n      skip: true,\n      parsed: false,\n  \
+          \    failed: true,\n      headline: 'The agentic verdict step returned no\
+          \ usable answer, so nothing was written. What it said: '\n             \
+          \   + raw_text.slice(0, 300),\n      verdict: {},\n    };\n  }\n\n  const\
+          \ proceed = verdict.write_postmortem !== false;\n  return {\n    proceed:\
+          \ proceed,\n    skip: !proceed,\n    parsed: true,\n    headline: verdict.headline\
+          \ || '',\n    verdict: verdict,\n  };\n}\n"
+      action: dynatrace.automations:run-javascript
+      position:
+        x: 0
+        y: 4
+      conditions:
+        states:
+          verdict: OK
+      description: GATE. Parses the agent's verdict into a boolean the workflow branches
+        on. An agent that cannot change what happens next is a text generator.
+      predecessors:
+      - verdict
+    draft:
+      name: draft
+      input:
+        prompt: What does the postmortem for this incident read like, written from
+          the evidence you gathered in this conversation?
+        instruction: 'You are a senior site reliability engineer writing for human
+          review. GitHub flavoured markdown, English, under 700 words. No em dashes
+          or en dashes. Never invent an entity, a number, a time or a cause, and always
+          distinguish what the platform determined from what you inferred.
+
+
+          Use exactly these level 2 headings, in this order, and skip one only when
+          you have no evidence for it: "Timeline", "Impact", "Root cause", "What changed
+          first", "One off or chronic", "Prior art", "Corrective actions", "What we
+          could not see".
+
+
+          Timeline is a table with the columns Time, Event, Source. Corrective actions
+          is a numbered list of three to five items, each starting with a bold owner
+          role and ending with how to verify it worked. Do not print a title or a
+          date line.'
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''verdict'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 5
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').proceed }}'
+        states:
+          gate: OK
+      description: WRITE. Same conversation, so the agent writes from what it already
+        found and re-queries nothing.
+      predecessors:
+      - gate
+    verdict:
+      name: verdict
+      input:
+        prompt: 'Given everything your tools returned in this conversation, is this
+          incident worth a human writing a postmortem for, and what is your read on
+          it?
+
+
+          In your answer, cover: whether the postmortem should be written; a one sentence
+          headline a platform owner could read on its own; whether the cause came
+          from the platform''s own root cause analysis, from your own inference, or
+          is unknown; the cause in one sentence; your confidence; whether this is
+          a one off, recurring or chronic; how many occurrences you found in the last
+          30 days; the earliest anomalous signal you found; any existing runbook or
+          prior write-up; what evidence you could not retrieve and what it would have
+          told you; and which tools you actually called.
+
+
+          Say the postmortem is not worth writing only when the incident is too small
+          or too thinly evidenced to be worth a human''s time.
+
+
+          Treat the cause as coming from the platform''s root cause analysis only
+          if you actually read a root cause off the problem record. If you reasoned
+          it out yourself it is your own inference, and then your confidence cannot
+          be high.'
+        instruction: You are answering so that a workflow can branch on your answer.
+          Fill every field of the requested structure, using only what your tools
+          returned in this conversation. Never answer with null. Where a value is
+          unknown write "unknown" for text, 0 for numbers, false for booleans and
+          an empty list for lists. A null fails the whole step.
+        outputFormat: '{"type": "object", "properties": {"write_postmortem": {"type":
+          "boolean"}, "headline": {"type": "string"}, "cause_source": {"type": "string"},
+          "cause": {"type": "string"}, "confidence": {"type": "string"}, "chronic":
+          {"type": "string"}, "occurrences_30d": {"type": "integer"}, "first_signal":
+          {"type": "string"}, "existing_runbook": {"type": "string"}, "missing_evidence":
+          {"type": "array", "items": {"type": "string"}}, "tools_used": {"type": "array",
+          "items": {"type": "string"}}}, "required": ["write_postmortem", "headline",
+          "cause_source", "confidence", "tools_used"]}'
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''investigate'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 3
+      conditions:
+        states:
+          investigate: OK
+      description: DECIDE. Structured verdict the workflow can branch on.
+      predecessors:
+      - investigate
+    mail_link:
+      name: mail_link
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: '{{ result(''gate'').headline }}
+
+
+          The postmortem for **{{ result(''create_notebook'').title }}** ({{ result(''create_notebook'').displayId
+          }}, {{ result(''create_notebook'').durationMinutes }} minutes) is drafted.
+
+
+          [Open the postmortem notebook]({{ result(''create_notebook'').url }})
+
+
+          [Open the problem]({{ result(''create_notebook'').problemUrl }})
+
+
+          The notebook holds the timeline, impact, root cause, corrective actions
+          and the charts behind them. Draft only, a human owns the final postmortem.'
+        subject: 'Postmortem ready: {{ result(''create_notebook'').title }}'
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 7
+      conditions:
+        else: SKIP
+        custom: '{{ result(''create_notebook'').created }}'
+        states:
+          create_notebook: OK
+      description: ACT. Email the notebook link.
+      predecessors:
+      - create_notebook
+    investigate:
+      name: investigate
+      input:
+        prompt: 'Investigate this resolved incident so a postmortem can be written
+          from evidence rather than from inference.
+
+
+          ANCHOR, the incident to investigate:
+
+          {{ result(''anchor_incident'').records[0] }}
+
+
+          Run the following investigation yourself using your tools. Do not guess
+          at anything you can look up. After each step, say in one line what you ran
+          and what came back, including when it came back empty.
+
+
+          1. ROOT CAUSE, first and most important. Retrieve the Davis problem record
+          for this problem id and read the root cause the platform already determined,
+          including its evidence details and the root cause entity. Dynatrace computes
+          causal root cause. Use it. Only if the record carries no root cause may
+          you reason about a likely cause yourself, and then you must label it as
+          your inference.
+
+          2. DEPENDENCIES. Look up the affected entity and its Smartscape relationships.
+          Name what called it and what it called, and say which of those also had
+          problems in the same window.
+
+          3. FIRST SIGNAL. Query logs and events for the affected entity from thirty
+          minutes before the incident start to the incident end. Find the earliest
+          anomalous signal and quote it. If the logs show nothing, say so plainly.
+
+          4. CHANGE. Check whether anything changed on or around that entity shortly
+          before the start: a deployment, a version change, a configuration change,
+          a scaling event.
+
+          5. HISTORY. Count how often this problem signature occurred in the last
+          thirty days, on how many separate days, and the total time lost.
+
+          6. PRIOR ART. Search the environment''s notebooks and dashboards for existing
+          material on this problem type or this entity. If a runbook or an earlier
+          postmortem exists, give its title and link. Do not duplicate work a human
+          already did.
+
+
+          Output your raw findings as short numbered notes, one block per step above.
+          No narrative, no headings, no formatting. This is working material for the
+          next step, not the postmortem.
+
+
+          You have a hard ceiling of eight tool calls for this whole investigation.
+          Spend them on the facts a conclusion turns on, and stop when they are gone
+          rather than leaving the step to fail. Say plainly what you did not get to.'
+        instruction: 'You are a site reliability engineer gathering evidence, not
+          writing yet. Use your tools rather than your priors: if a fact is retrievable
+          from this environment, retrieve it. Stay within a sensible tool budget,
+          roughly a dozen calls, and stop early if the evidence is already conclusive.
+          Report empty results as empty. Never state a number, an entity name, a timestamp
+          or a cause that a tool did not return to you.'
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: ''
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 2
+      conditions:
+        states:
+          anchor_incident: OK
+      description: INVESTIGATE. The agent gathers its own evidence with tools. Nothing
+        is pre-fetched for it.
+      predecessors:
+      - anchor_incident
+    mail_skipped:
+      name: mail_skipped
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: 'The agent investigated the most significant resolved incident of
+          the last 24 hours and no postmortem was written.
+
+
+          **Why:** {{ result(''gate'').headline }}
+
+
+          [Workflow execution]({{ environment().url }}/ui/apps/dynatrace.automations/executions/{{
+          execution().id }})'
+        subject: No postmortem today
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 8
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').skip }}'
+        states:
+          gate: OK
+      description: ACT, other branch. Silence is ambiguous, so say why no postmortem
+        was written.
+      predecessors:
+      - gate
+    anchor_incident:
+      name: anchor_incident
+      input:
+        query: 'fetch dt.davis.problems, from: -24h
+
+          | filter event.status == "CLOSED" and not dt.davis.is_duplicate and not
+          maintenance.is_under_maintenance
+
+          | dedup display_id
+
+          | filter event.category != "CUSTOM_ALERT"
+
+          | fieldsAdd dur = toDuration(toLong(resolved_problem_duration))
+
+          | fieldsAdd e = smartscape.affected_entities[0]
+
+          | fieldsAdd entity_name = e[name], entity_type = e[type]
+
+          | filter isNotNull(entity_name)
+
+          | fieldsAdd duration_minutes = round(dur / 1m, decimals: 1)
+
+          | fieldsAdd problem_title = arrayFirst(splitString(event.name, ":"))
+
+          | fields display_id, event.id, problem_title, event.category, event.severity,
+          entity_name, entity_type, event.start, event.end, duration_minutes, dt.davis.impact_level
+
+          | sort duration_minutes desc
+
+          | limit 3'
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: 'ANCHOR. The one thing this run is about. Deterministic on purpose:
+        selection and the facts of record must be reproducible and auditable. Everything
+        else is the agent''s job.'
+      predecessors: []
+    create_notebook:
+      name: create_notebook
+      input:
+        script: "import { documentsClient } from '@dynatrace-sdk/client-document';\n\
+          import { execution, getWorkflowLink } from '@dynatrace-sdk/automation-utils';\n\
+          import { queryExecutionClient } from '@dynatrace-sdk/client-query';\n\n\
+          // A notebook chart only renders on open if the query result is stored in\
+          \ the\n// document. Without state.result the section falls back to the DQL\
+          \ editor and\n// the reader has to press Run, which is what happened before\
+          \ this was added.\nconst QUERY_SETTINGS = {\n  maxResultRecords: 1000,\n\
+          \  defaultScanLimitGbytes: 500,\n  maxResultMegaBytes: 1,\n  defaultSamplingRatio:\
+          \ 10,\n  enableSampling: false,\n};\n\nasync function runDql(dql) {\n  try\
+          \ {\n    let res = await queryExecutionClient.queryExecute({\n      body:\
+          \ { query: dql, requestTimeoutMilliseconds: 50000, enablePreview: false\
+          \ },\n    });\n    // Long queries come back RUNNING and have to be polled\
+          \ with the token.\n    let guard = 0;\n    while (res && res.state && res.state\
+          \ !== 'SUCCEEDED' && res.requestToken && guard < 20) {\n      guard++;\n\
+          \      res = await queryExecutionClient.queryPoll({\n        requestToken:\
+          \ res.requestToken,\n        requestTimeoutMilliseconds: 30000,\n      });\n\
+          \    }\n    return res && res.result ? res.result : null;\n  } catch (e)\
+          \ {\n    return null;\n  }\n}\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,\
+          \ function () {\n    return Math.floor(Math.random() * 16).toString(16);\n\
+          \  });\n}\n\nfunction dqlEscape(s) {\n  return String(s).replace(/\\\\/g,\
+          \ '\\\\\\\\').replace(/\"/g, '\\\\\"');\n}\n\nconst DAVIS_STATE = {\n  includeLogs:\
+          \ true,\n  davisVisualization: { isAvailable: true },\n};\n\n// Matches\
+          \ a verified working section. autoSelectVisualization plus empty\n// chartSettings\
+          \ lets the UI derive the axis mapping from the stored result,\n// which\
+          \ is what real notebooks do. Hand-built fieldMapping was not needed.\nasync\
+          \ function chartSection(title, dql, from, to, visualization, height) {\n\
+          \  const timeframe = { from: from, to: to };\n  const queryResult = await\
+          \ runDql(dql);\n  const state = {\n    input: { value: dql, timeframe: timeframe\
+          \ },\n    visualizationSettings: {\n      autoSelectVisualization: false,\n\
+          \      chartSettings: {},\n    },\n    querySettings: QUERY_SETTINGS,\n\
+          \    visualization: visualization,\n    davis: DAVIS_STATE,\n    state:\
+          \ 'success',\n  };\n  if (queryResult) {\n    state.result = {\n      code:\
+          \ 200,\n      value: queryResult,\n      notifications: [],\n      querySettings:\
+          \ QUERY_SETTINGS,\n      dateTime: new Date().toISOString(),\n      input:\
+          \ { value: dql, timeframe: timeframe },\n    };\n  }\n  return {\n    id:\
+          \ uuid(),\n    type: 'dql',\n    title: title,\n    showTitle: true,\n \
+          \   drilldownPath: [],\n    filterSegments: [],\n    previousFilterSegments:\
+          \ [],\n    showInput: false,\n    height: height || 320,\n    state: state,\n\
+          \  };\n}\n\nexport default async function () {\n  const ex = await execution();\n\
+          \  const envUrl = new URL(getWorkflowLink()).origin;\n\n  const incidentRes\
+          \ = await ex.result('anchor_incident');\n  const draftRes = await ex.result('draft');\n\
+          \n  const records = (incidentRes && incidentRes.records) || [];\n  if (records.length\
+          \ === 0) {\n    return { created: false, reason: 'No resolved incidents\
+          \ yesterday.' };\n  }\n\n  const inc = records[0];\n  const title = inc['problem_title']\
+          \ || 'Incident';\n  const displayId = inc['display_id'] || '';\n  const\
+          \ eventId = inc['event.id'] || '';\n  const entity = inc['entity_name']\
+          \ || 'unknown entity';\n  const entityType = inc['entity_type'] || '';\n\
+          \  const category = inc['event.category'] || '';\n  const durationMin =\
+          \ inc['duration_minutes'];\n  const start = inc['event.start'];\n  const\
+          \ end = inc['event.end'];\n\n  const draftRaw = draftRes && (draftRes.text\
+          \ || draftRes);\n  const draftMarkdown =\n    typeof draftRaw === 'string'\
+          \ ? draftRaw : JSON.stringify(draftRaw, null, 2);\n\n  const problemUrl\
+          \ = eventId\n    ? envUrl + '/ui/apps/dynatrace.davis.problems/problem/'\
+          \ + encodeURIComponent(eventId)\n    : envUrl + '/ui/apps/dynatrace.davis.problems';\n\
+          \n  // Chart window: two hours either side of the incident. Long incidents\
+          \ get a\n  // coarser interval so the chart stays readable instead of thousands\
+          \ of points.\n  const startMs = new Date(start).getTime();\n  const endMs\
+          \ = end ? new Date(end).getTime() : startMs;\n  const fromIso = new Date(startMs\
+          \ - 2 * 3600 * 1000).toISOString();\n  const toIso = new Date(endMs + 2\
+          \ * 3600 * 1000).toISOString();\n  const windowHours = (endMs - startMs)\
+          \ / 3600000 + 4;\n  const interval = windowHours <= 12 ? '10m' : windowHours\
+          \ <= 168 ? '1h' : '6h';\n  const safeTitle = dqlEscape(title);\n  const\
+          \ safeEntity = dqlEscape(entity);\n\n  const facts = [\n    '# Postmortem:\
+          \ ' + title,\n    '',\n    '**Problem:** [' + (displayId || 'open in Problems')\
+          \ + '](' + problemUrl + ')',\n    '',\n    '| Field | Value |',\n    '|\
+          \ --- | --- |',\n    '| Problem id | ' + displayId + ' |',\n    '| Affected\
+          \ entity | ' + entity + (entityType ? ' (' + entityType + ')' : '') + '\
+          \ |',\n    '| Category | ' + category + ' |',\n    '| Started | ' + start\
+          \ + ' |',\n    '| Ended | ' + (end || 'not recorded') + ' |',\n    '| Duration\
+          \ | ' + durationMin + ' minutes |',\n    '',\n    'Draft generated automatically\
+          \ from telemetry. A human owns the final postmortem.',\n  ].join('\\n');\n\
+          \n  const sections = [\n    { id: uuid(), type: 'markdown', markdown: facts\
+          \ },\n    { id: uuid(), type: 'markdown', markdown: draftMarkdown },\n \
+          \   { id: uuid(), type: 'markdown', markdown: '## Evidence' },\n    await\
+          \ chartSection(\n      'Problems on ' + entity + ', last 30 days',\n   \
+          \   'fetch dt.davis.problems, from: -30d\\n' +\n        '| filter not dt.davis.is_duplicate\\\
+          n' +\n        '| dedup display_id\\n' +\n        '| expand smartscape.affected_entities\\\
+          n' +\n        '| fieldsAdd affected_entity = smartscape.affected_entities[name]\\\
+          n' +\n        '| filter affected_entity == \"' + safeEntity + '\"\\n' +\n\
+          \        '| makeTimeseries incidents = count(), interval: 1d',\n      'now()-30d',\n\
+          \      'now()',\n      'lineChart',\n      320,\n    ),\n    await chartSection(\n\
+          \      'How often this signature fired, last 30 days',\n      'fetch dt.davis.problems,\
+          \ from: -30d\\n' +\n        '| filter not dt.davis.is_duplicate\\n' +\n\
+          \        '| dedup display_id\\n' +\n        '| filter startsWith(event.name,\
+          \ \"' + safeTitle + '\")\\n' +\n        '| makeTimeseries incidents = count(),\
+          \ interval: 1d',\n      'now()-30d',\n      'now()',\n      'lineChart',\n\
+          \      320,\n    ),\n    await chartSection(\n      'Entities hit by this\
+          \ signature, last 30 days',\n      'fetch dt.davis.problems, from: -30d\\\
+          n' +\n        '| filter not dt.davis.is_duplicate\\n' +\n        '| dedup\
+          \ display_id\\n' +\n        '| filter startsWith(event.name, \"' + safeTitle\
+          \ + '\")\\n' +\n        '| fieldsAdd dur = toDuration(toLong(resolved_problem_duration))\\\
+          n' +\n        '| fieldsAdd e = smartscape.affected_entities[0]\\n' +\n \
+          \       '| fieldsAdd affected_entity = e[name]\\n' +\n        '| filter\
+          \ isNotNull(affected_entity)\\n' +\n        '| summarize incidents = count(),\
+          \ downtime = sum(dur), by: {affected_entity}\\n' +\n        '| fieldsAdd\
+          \ downtime_hours = round(downtime / 1h, decimals: 1)\\n' +\n        '| fieldsRemove\
+          \ downtime\\n' +\n        '| sort downtime_hours desc\\n' +\n        '|\
+          \ limit 10',\n      'now()-30d',\n      'now()',\n      'barChart',\n  \
+          \    360,\n    ),\n  ];\n\n  const content = {\n    version: '7',\n    defaultTimeframe:\
+          \ { from: 'now()-30d', to: 'now()' },\n    defaultSegments: [],\n    sections:\
+          \ sections,\n  };\n\n  const doc = await documentsClient.createDocument({\n\
+          \    body: {\n      name: 'Postmortem: ' + title + (displayId ? ' (' + displayId\
+          \ + ')' : ''),\n      type: 'notebook',\n      isPrivate: false,\n     \
+          \ content: new Blob([JSON.stringify(content)], { type: 'application/json'\
+          \ }),\n    },\n  });\n\n  return {\n    created: true,\n    id: doc.id,\n\
+          \    url: envUrl + '/ui/apps/dynatrace.notebooks/notebook/' + doc.id,\n\
+          \    title: title,\n    displayId: displayId,\n    problemUrl: problemUrl,\n\
+          \    durationMinutes: durationMin,\n  };\n}\n"
+      action: dynatrace.automations:run-javascript
+      timeout: 900
+      position:
+        x: 0
+        y: 6
+      conditions:
+        states:
+          draft: OK
+      description: 'ACT. Build the Dynatrace Notebook: narrative, problem link, supporting
+        charts.'
+      predecessors:
+      - draft
