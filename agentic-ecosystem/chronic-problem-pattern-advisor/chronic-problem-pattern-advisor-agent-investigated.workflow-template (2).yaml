@@ -1,0 +1,468 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3396.2
+    - id: dynatrace.davis.workflow.actions
+      version: ^1.10.1-dev.20260915T095910+c3e3423f
+    - id: dynatrace.email
+      version: ^1.10.12-dev.20260915T065623+cde16a97
+  inputs: []
+workflow:
+  title: Chronic Problem Pattern Advisor (agent-investigated)
+  description: 'Weekly. Ranks the chronic problem patterns of the last 30 days deterministically,
+    then lets the agentic step investigate the top three with its own tools instead
+    of inferring a cause from the shape of the numbers: example instances, Davis root
+    cause, the entities involved, the detection settings in play, a forecast of where
+    the pattern is heading, and any runbook that already exists. Mails the review
+    only if the agent judges it worth sending.'
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: false
+      trigger:
+        cron: 0 7 * * 1
+        type: cron
+      filterParameters: {}
+      timezone: Europe/Vienna
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    gate:
+      name: gate
+      input:
+        script: "import { execution } from '@dynatrace-sdk/automation-utils';\n\n\
+          // The agent answers in natural language even when asked for JSON, so parse\n\
+          // defensively: strip code fences, take the outermost object, and fall back\
+          \ to\n// a safe default rather than failing the run. Branching on a parsed\
+          \ verdict is\n// what turns the agent from a text generator into a decision\
+          \ the workflow acts on.\nfunction parseVerdict(raw) {\n  if (raw == null)\
+          \ return null;\n  let text = typeof raw === 'string' ? raw : (raw.text ||\
+          \ JSON.stringify(raw));\n  text = String(text).trim();\n  text = text.replace(/^```(?:json)?/i,\
+          \ '').replace(/```$/, '').trim();\n  const first = text.indexOf('{');\n\
+          \  const last = text.lastIndexOf('}');\n  if (first === -1 || last === -1\
+          \ || last <= first) return null;\n  try {\n    return JSON.parse(text.slice(first,\
+          \ last + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nexport default\
+          \ async function () {\n  const ex = await execution();\n  const raw = await\
+          \ ex.result('verdict');\n  // The action returns { text, jsonOutput, conversationId\
+          \ }. With a schema in\n  // outputFormat the platform has already parsed\
+          \ the object into jsonOutput, so\n  // take it. The text parser stays as\
+          \ the fallback for a schemaless run.\n  const verdict = (raw && raw.jsonOutput)\
+          \ ? raw.jsonOutput : parseVerdict(raw);\n\n  if (!verdict) {\n    // A verdict\
+          \ that will not parse means the agentic step refused or broke. Proceeding\n\
+          \    // here is how a model's refusal gets mailed out dressed as a report,\
+          \ which is worse\n    // than sending nothing, so this branch stops and\
+          \ says what happened instead.\n    const raw_text = (raw && typeof raw ===\
+          \ 'object' && raw.text) ? String(raw.text) : String(raw || '');\n    return\
+          \ {\n      proceed: false,\n      skip: true,\n      parsed: false,\n  \
+          \    failed: true,\n      headline: 'The agentic verdict step returned no\
+          \ usable answer, so nothing was written. What it said: '\n             \
+          \   + raw_text.slice(0, 300),\n      verdict: {},\n    };\n  }\n\n  const\
+          \ proceed = verdict.worth_sending !== false;\n  return {\n    proceed: proceed,\n\
+          \    skip: !proceed,\n    parsed: true,\n    headline: verdict.headline\
+          \ || '',\n    verdict: verdict,\n  };\n}\n"
+      action: dynatrace.automations:run-javascript
+      position:
+        x: 0
+        y: 4
+      conditions:
+        states:
+          verdict: OK
+      description: GATE. Parses the verdict into a boolean. A quiet month sends the
+        short note, not a padded report with the same headings as a busy one.
+      predecessors:
+      - verdict
+    advise:
+      name: advise
+      input:
+        prompt: 'What does this week''s optimization review read like, written from
+          the evidence you gathered in this conversation?
+
+
+          Use these level 3 headings, in this order:
+
+
+          ### The most expensive pattern
+
+          Three sentences on the pattern that cost the most, with its numbers, its
+          direction, and your forecast for it if you were able to produce one.
+
+
+          ### Top chronic patterns
+
+          A markdown table of the five most costly patterns with columns: Pattern,
+          Entity type, Occurrences (30d), Active days, Total downtime (h), Trend vs
+          prior week. Take these numbers from the scoreboard exactly as given.
+
+
+          ### Diagnosis and fixes
+
+          One level 4 heading per investigated pattern. Under each: what you found
+          and where you found it, in at most three sentences, then a bullet list of
+          one to three optimizations. Start every bullet with **FIX**, **TUNE** or
+          **SUPPRESS** in bold. A TUNE bullet must name the actual setting. State
+          for each pattern whether the cause came from Dynatrace root cause analysis
+          or from your own reasoning, and never let the reader have to guess which.
+
+
+          ### Noise check
+
+          A markdown table with columns: Pattern, Per active day, Median downtime
+          (min), Verdict, Setting to change. Verdict is Real impact or Detection noise,
+          and the evidence for it is what you found in the detection configuration,
+          not only the ratio.
+
+
+          ### Prior art
+
+          One line per pattern where you found an existing runbook, notebook or write
+          up, with the link. Omit this section if you found none, and say so in one
+          line under the heading above.
+
+
+          ### What to do first
+
+          A numbered list of exactly three actions, one sentence each, naming the
+          pattern, the expected effect, and the check that would confirm it worked.
+
+
+          ### What we could not see
+
+          One line per item from your missing evidence list. Omit if nothing was missing.
+
+
+          Ground every claim in what your tools returned and quote the numbers you
+          rely on.'
+        instruction: 'You are a senior site reliability engineer. GitHub flavoured
+          markdown for an email, English, under 750 words.
+
+
+          OUTPUT CONTRACT, follow exactly:
+
+          1. Do not print a document title, a date line, or an environment name. The
+          email subject carries them. Start with the conclusion.
+
+          2. First line: one bold sentence, the single most important thing the reader
+          should know.
+
+          3. Every group of numbers goes in a markdown table with a header row.
+
+          4. Paragraphs are three sentences maximum.
+
+          5. Never use an em dash or an en dash. Use commas, semicolons, colons or
+          parentheses.
+
+          6. Separate everywhere what the platform determined from what you inferred.'
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''verdict'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 5
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').proceed }}'
+        states:
+          gate: OK
+      description: WRITE. Same conversation, so the agent writes from what it found
+        and re-queries nothing.
+      predecessors:
+      - gate
+    verdict:
+      name: verdict
+      input:
+        prompt: 'Given everything your tools returned in this conversation, is any
+          of this worth sending to a platform owner this week, and what should they
+          do about each pattern you investigated?
+
+
+          In your answer, cover: whether it is worth sending; a headline naming the
+          single most expensive or fastest growing pattern with its numbers; and for
+          every pattern you investigated its signature, whether the right move is
+          to FIX, TUNE or SUPPRESS, whether the cause came from the platform''s root
+          cause analysis or your own inference, the cause, the specific setting to
+          change, where the pattern is concentrated, whether it is growing, fading
+          or flat, whether a forecast was available, your confidence, any existing
+          runbook, and what you actually looked at. Also cover what evidence you could
+          not retrieve and what it would have told you.
+
+
+          Say it is not worth sending only when nothing in the 30 day window is worth
+          a platform owner acting on this week.
+
+
+          FIX means remove the underlying cause. TUNE means change a detection or
+          alerting setting, and then the setting to change cannot be unknown. SUPPRESS
+          means a maintenance window, filter or alerting profile change. Confidence
+          cannot be high when the cause is your own inference.'
+        instruction: You are answering so that a workflow can branch on your answer.
+          Fill every field of the requested structure, using only what your tools
+          returned in this conversation. Never answer with null. Where a value is
+          unknown write "unknown" for text, 0 for numbers, false for booleans and
+          an empty list for lists. A null fails the whole step.
+        outputFormat: '{"type": "object", "properties": {"worth_sending": {"type":
+          "boolean"}, "headline": {"type": "string"}, "patterns": {"type": "array",
+          "items": {"type": "object", "properties": {"signature": {"type": "string"},
+          "action": {"type": "string"}, "cause_source": {"type": "string"}, "cause":
+          {"type": "string"}, "setting_to_change": {"type": "string"}, "concentration":
+          {"type": "string"}, "direction": {"type": "string"}, "forecast_available":
+          {"type": "boolean"}, "confidence": {"type": "string"}, "existing_runbook":
+          {"type": "string"}, "evidence_checked": {"type": "array", "items": {"type":
+          "string"}}}, "required": ["signature", "action", "cause_source", "confidence"]}},
+          "missing_evidence": {"type": "array", "items": {"type": "string"}}}, "required":
+          ["worth_sending", "headline", "patterns"]}'
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''investigate'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 3
+      conditions:
+        states:
+          investigate: OK
+      description: DECIDE. Structured verdict the workflow can branch on.
+      predecessors:
+      - investigate
+    mail_quiet:
+      name: mail_quiet
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: 'The agent reviewed 30 days of problem history and no review was
+          sent.
+
+
+          **Why:** {{ result(''gate'').headline }}
+
+
+          [Workflow execution]({{ environment().url }}/ui/apps/dynatrace.automations/executions/{{
+          execution().id }})'
+        subject: 'Chronic pattern review: nothing worth acting on'
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 1
+        y: 6
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').skip }}'
+        states:
+          gate: OK
+      description: ACT, other branch. Nothing worth acting on is itself a result.
+        Say it in one line rather than sending a report shaped like a busy month.
+      predecessors:
+      - gate
+    investigate:
+      name: investigate
+      input:
+        prompt: 'You are reviewing 30 days of problem history for this environment
+          and preparing the weekly optimization review for its platform owner. The
+          scoreboard below is fixed. Your job is to find out why the top patterns
+          happen, using your tools.
+
+
+          SCOREBOARD A, chronic patterns of the last 30 days, ranked by total downtime:
+
+          {{ result(''chronic_patterns'').records }}
+
+
+          SCOREBOARD B, the same signatures this week against the prior week. Positive
+          delta means growing, negative means fading:
+
+          {{ result(''weekly_trend'').records }}
+
+
+          Take the THREE patterns that matter most, chosen by total downtime and by
+          trend, not simply the top three rows. For each of them, run this investigation
+          and report what you actually found, including empty results:
+
+
+          1. INSTANCES. Pull two or three of the example problem ids for that pattern
+          and read the actual problem records. What do the instances have in common?
+
+          2. ROOT CAUSE. For those instances, read the root cause Dynatrace already
+          determined and its evidence. This is the difference between a diagnosis
+          and a guess. Say explicitly when the platform gives you a cause and when
+          it does not.
+
+          3. ENTITIES. Look up the affected entities and their Smartscape relationships.
+          Is the pattern concentrated on one host, one cluster, one service tier,
+          one version? Concentration and spread point at very different fixes.
+
+          4. DETECTION. Work out what raised these problems. Which detection or alerting
+          configuration is in play, and does the median duration and the per active
+          day rate suggest the threshold is set too tight? Name the specific setting
+          if you can identify it.
+
+          5. DIRECTION. Use the forecasting and anomaly detection tools available
+          to you to say where this pattern is heading over the next one to two weeks.
+          A pattern that is fading does not deserve an engineering sprint. A pattern
+          forecast to keep growing does. If you cannot produce a forecast, say so
+          rather than extrapolating by hand.
+
+          6. PRIOR ART. Search notebooks and dashboards for existing material on this
+          pattern. If someone already wrote it up, link it rather than repeating it.
+
+
+          Output short numbered notes per pattern. No headings, no narrative, no formatting.
+          This is working material for the next step.
+
+
+          You have a hard ceiling of eight tool calls for this whole investigation.
+          Spend them on the facts a conclusion turns on, and stop when they are gone
+          rather than leaving the step to fail. Say plainly what you did not get to.'
+        instruction: You are a senior site reliability engineer gathering evidence,
+          not writing yet. Never infer from the shape of the numbers what a tool could
+          tell you directly. Stay within a sensible tool budget, roughly fifteen calls
+          across all three patterns, and stop early when the evidence is conclusive.
+          Report empty results as empty. Never state a number, an entity, a setting
+          name or a cause that a tool did not return to you.
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: ''
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 2
+      conditions:
+        states:
+          weekly_trend: OK
+          chronic_patterns: OK
+      description: INVESTIGATE. The agent goes and looks instead of inferring a cause
+        from row shapes.
+      predecessors:
+      - chronic_patterns
+      - weekly_trend
+    mail_report:
+      name: mail_report
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: '{{ result(''advise'').text or result(''advise'') }}
+
+
+          ---
+
+
+          Generated by the Chronic Problem Pattern Advisor workflow on {{ environment().url
+          }}.
+
+          Execution: {{ environment().url }}/ui/apps/dynatrace.automations/executions/{{
+          execution().id }}'
+        subject: 'Chronic pattern review: {{ result(''gate'').headline }}'
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 6
+      conditions:
+        states:
+          advise: OK
+      description: ACT. Mail the review.
+      predecessors:
+      - advise
+    weekly_trend:
+      name: weekly_trend
+      input:
+        query: "fetch dt.davis.problems, from: -14d\n| filter event.status == \"CLOSED\"\
+          \ and not dt.davis.is_duplicate and not maintenance.is_under_maintenance\n\
+          | dedup display_id\n| fieldsAdd e = smartscape.affected_entities[0]\n| fieldsAdd\
+          \ entity_type = e[type]\n| fieldsAdd signature = arrayFirst(splitString(event.name,\
+          \ \":\"))\n| fieldsAdd period = if(event.start >= now() - 7d, \"this_week\"\
+          , else: \"prior_week\")\n| summarize occurrences = count(), by: {signature,\
+          \ entity_type, period}\n| summarize this_week = sum(if(period == \"this_week\"\
+          , occurrences, else: 0)),\n            prior_week = sum(if(period == \"\
+          prior_week\", occurrences, else: 0)),\n            by: {signature, entity_type}\n\
+          | fieldsAdd delta = this_week - prior_week\n| fieldsAdd swing = abs(delta)\n\
+          | filter this_week + prior_week >= 20\n| sort swing desc\n| limit 15"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 1
+        y: 1
+      description: ANCHOR. The same signatures, this week against the prior week.
+        Same normalisation, so the two datasets join on one key.
+      predecessors: []
+    chronic_patterns:
+      name: chronic_patterns
+      input:
+        query: "fetch dt.davis.problems, from: -30d\n| filter event.status == \"CLOSED\"\
+          \ and not dt.davis.is_duplicate and not maintenance.is_under_maintenance\n\
+          | dedup display_id\n| fieldsAdd e = smartscape.affected_entities[0]\n| fieldsAdd\
+          \ entity_name = e[name], entity_type = e[type]\n| fieldsAdd dur = toDuration(toLong(resolved_problem_duration))\n\
+          | fieldsAdd day = formatTimestamp(event.start, format: \"yyyy-MM-dd\")\n\
+          | fieldsAdd signature = arrayFirst(splitString(event.name, \":\"))\n| summarize\
+          \ occurrences = count(),\n            impacted_entities = countDistinctApprox(entity_name),\n\
+          \            active_days = countDistinctApprox(day),\n            total_downtime\
+          \ = sum(dur),\n            median_downtime = median(dur),\n            last_seen\
+          \ = max(event.start),\n            example_problem_ids = collectDistinct(display_id,\
+          \ maxLength: 3),\n            example_entities = collectDistinct(entity_name,\
+          \ maxLength: 3),\n            by: {signature, entity_type, event.category}\n\
+          | filter occurrences >= 5\n| fieldsAdd total_downtime_hours = round(total_downtime\
+          \ / 1h, decimals: 1),\n            median_downtime_minutes = round(median_downtime\
+          \ / 1m, decimals: 1),\n            per_active_day = round(occurrences /\
+          \ active_days, decimals: 1)\n| fieldsRemove total_downtime, median_downtime\n\
+          | sort total_downtime_hours desc\n| limit 15"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: ANCHOR. The scoreboard, ranked by total downtime. Deterministic
+        because these numbers go in a table a human will audit. Signature is normalised
+        so the same problem does not fragment.
+      predecessors: []
