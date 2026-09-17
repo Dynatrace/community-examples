@@ -1,0 +1,526 @@
+metadata:
+  version: '1'
+  dependencies:
+    apps:
+    - id: dynatrace.automations
+      version: ^1.3396.2
+    - id: dynatrace.davis.workflow.actions
+      version: ^1.10.1-dev.20260915T095910+c3e3423f
+    - id: dynatrace.email
+      version: ^1.10.12-dev.20260915T065623+cde16a97
+  inputs: []
+workflow:
+  title: Agentic Weekly Operations Report
+  description: 'Weekly. A deterministic scoreboard of the week against the prior week,
+    then an agentic step that classifies what changed and investigates the two or
+    three things that actually moved: what the new signatures are attached to, what
+    changed on those entities, whether Dynatrace already has a root cause, and whether
+    it is forecast to continue. The agent decides whether the week is worth a report
+    at all, and the workflow honours that decision.'
+  schemaVersion: 4
+  trigger:
+    schedule:
+      isActive: false
+      trigger:
+        cron: 0 8 * * 1
+        type: cron
+      filterParameters: {}
+      timezone: Europe/Vienna
+      inputs: {}
+  result: null
+  type: STANDARD
+  input: {}
+  hourlyExecutionLimit: 1000
+  guide: null
+  tasks:
+    gate:
+      name: gate
+      input:
+        script: "import { execution } from '@dynatrace-sdk/automation-utils';\n\n\
+          // The agent answers in natural language even when asked for JSON, so parse\n\
+          // defensively: strip code fences, take the outermost object, and fall back\
+          \ to\n// a safe default rather than failing the run. Branching on a parsed\
+          \ verdict is\n// what turns the agent from a text generator into a decision\
+          \ the workflow acts on.\nfunction parseVerdict(raw) {\n  if (raw == null)\
+          \ return null;\n  let text = typeof raw === 'string' ? raw : (raw.text ||\
+          \ JSON.stringify(raw));\n  text = String(text).trim();\n  text = text.replace(/^```(?:json)?/i,\
+          \ '').replace(/```$/, '').trim();\n  const first = text.indexOf('{');\n\
+          \  const last = text.lastIndexOf('}');\n  if (first === -1 || last === -1\
+          \ || last <= first) return null;\n  try {\n    return JSON.parse(text.slice(first,\
+          \ last + 1));\n  } catch (e) {\n    return null;\n  }\n}\n\nexport default\
+          \ async function () {\n  const ex = await execution();\n  const raw = await\
+          \ ex.result('verdict');\n  // The action returns { text, jsonOutput, conversationId\
+          \ }. With a schema in\n  // outputFormat the platform has already parsed\
+          \ the object into jsonOutput, so\n  // take it. The text parser stays as\
+          \ the fallback for a schemaless run.\n  const verdict = (raw && raw.jsonOutput)\
+          \ ? raw.jsonOutput : parseVerdict(raw);\n\n  if (!verdict) {\n    // A verdict\
+          \ that will not parse means the agentic step refused or broke. Proceeding\n\
+          \    // here is how a model's refusal gets mailed out dressed as a report,\
+          \ which is worse\n    // than sending nothing, so this branch stops and\
+          \ says what happened instead.\n    const raw_text = (raw && typeof raw ===\
+          \ 'object' && raw.text) ? String(raw.text) : String(raw || '');\n    return\
+          \ {\n      proceed: false,\n      skip: true,\n      parsed: false,\n  \
+          \    failed: true,\n      headline: 'The agentic verdict step returned no\
+          \ usable answer, so nothing was written. What it said: '\n             \
+          \   + raw_text.slice(0, 300),\n      verdict: {},\n    };\n  }\n\n  const\
+          \ proceed = verdict.materially_changed !== false;\n  return {\n    proceed:\
+          \ proceed,\n    skip: !proceed,\n    parsed: true,\n    headline: verdict.headline\
+          \ || '',\n    verdict: verdict,\n  };\n}\n"
+      action: dynatrace.automations:run-javascript
+      position:
+        x: 0
+        y: 4
+      conditions:
+        states:
+          verdict: OK
+      description: GATE. Turns the verdict into a branch. The old version asked the
+        prompt not to pad a quiet week and hoped. This one lets the agent decide and
+        the workflow act on it.
+      predecessors:
+      - verdict
+    verdict:
+      name: verdict
+      input:
+        prompt: 'Given everything your tools returned in this conversation, did anything
+          material change this week, and what should the platform owner look at first?
+
+
+          In your answer, cover: whether the week materially changed; a headline with
+          the number that justifies it; each new signature with its entity type, this
+          week''s count, what it is attached to, the deployment or configuration change
+          behind it if you found one, whether the cause came from the platform''s
+          root cause analysis or your own inference, and whether you expect it to
+          continue; each signature that stopped, with your read on whether it was
+          fixed, decommissioned or whether monitoring went silent, and whether the
+          entity is still reporting; the one thing to look at first; whether a human
+          is needed right now, which is true only when something is actively degrading
+          or monitoring has gone silent on a live entity; and what evidence you could
+          not retrieve.
+
+
+          Say the week did not materially change, without hesitation, when it really
+          was quiet. A short honest note is worth more to the reader than a report
+          padded to look busy.'
+        instruction: You are answering so that a workflow can branch on your answer.
+          Fill every field of the requested structure, using only what your tools
+          returned in this conversation. Never answer with null. Where a value is
+          unknown write "unknown" for text, 0 for numbers, false for booleans and
+          an empty list for lists. A null fails the whole step.
+        outputFormat: '{"type": "object", "properties": {"materially_changed": {"type":
+          "boolean"}, "headline": {"type": "string"}, "new_signatures": {"type": "array",
+          "items": {"type": "object", "properties": {"signature": {"type": "string"},
+          "entity_type": {"type": "string"}, "this_week": {"type": "integer"}, "attached_to":
+          {"type": "string"}, "change_found": {"type": "string"}, "cause_source":
+          {"type": "string"}, "forecast": {"type": "string"}}, "required": ["signature",
+          "this_week"]}}, "stopped_signatures": {"type": "array", "items": {"type":
+          "object", "properties": {"signature": {"type": "string"}, "read": {"type":
+          "string"}, "entity_still_reporting": {"type": "boolean"}}, "required": ["signature",
+          "read"]}}, "top_concern": {"type": "string"}, "needs_human_now": {"type":
+          "boolean"}, "missing_evidence": {"type": "array", "items": {"type": "string"}}},
+          "required": ["materially_changed", "headline", "needs_human_now"]}'
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''investigate'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 3
+      conditions:
+        states:
+          investigate: OK
+      description: DECIDE. Structured verdict the workflow can branch on, including
+        whether to send at all.
+      predecessors:
+      - investigate
+    mail_quiet:
+      name: mail_quiet
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: 'The agent compared this week against the prior three and no report
+          was sent.
+
+
+          **Why:** {{ result(''gate'').headline }}
+
+
+          [Workflow execution]({{ environment().url }}/ui/apps/dynatrace.automations/executions/{{
+          execution().id }})'
+        subject: 'Weekly operations report: a quiet week'
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 1
+        y: 6
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').skip }}'
+        states:
+          gate: OK
+      description: ACT, other branch. A quiet week gets one honest line, not a padded
+        report.
+      predecessors:
+      - gate
+    investigate:
+      name: investigate
+      input:
+        prompt: 'You are preparing this week''s operations report for the platform
+          owner of this environment. Your job is not to recite the scoreboard. It
+          is to work out what changed, find out why, and decide what is worth their
+          attention.
+
+
+          SCOREBOARD A, problem volume and downtime by category, this week against
+          the prior week. change_pct is the percentage change in problem count:
+
+          {{ result(''volume_shift'').records }}
+
+
+          SCOREBOARD B, problem signatures this week against a three week baseline.
+          These rows are deliberately NOT classified for you. baseline_weekly_avg
+          is the baseline divided by three, so compare it against this_week:
+
+          {{ result(''pattern_shifts'').records }}
+
+
+          SCOREBOARD C, the entities carrying the most downtime this week, with their
+          prior week counts. delta is this week minus prior week:
+
+          {{ result(''top_entities'').records }}
+
+
+          Step 1, CLASSIFY. Go through SCOREBOARD B and decide for each row whether
+          it is new this week, stopped this week, or ongoing. Do not apply a fixed
+          count threshold. A signature appearing three times on a payment service
+          is not the same event as a signature appearing three times on a batch host,
+          so use the entity type, the category and the size of the baseline to judge.
+          State your classification and your reason in one line per row you classify
+          as new or stopped.
+
+
+          Step 2, PICK. Choose the two or three changes that actually matter this
+          week. New signatures usually outrank a large percentage swing on a small
+          base. Say why you picked each one and why you dropped anything that looks
+          big but is not.
+
+
+          Step 3, INVESTIGATE, using your tools, for each pick:
+
+          a. Pull the example problem ids and read the actual problem records. What
+          is the signature attached to?
+
+          b. Read the root cause Dynatrace already determined for those instances,
+          and its evidence. Say explicitly when the platform gives you a cause and
+          when it does not.
+
+          c. Look up the affected entities and their Smartscape relationships. What
+          depends on them, and did those dependents also degrade?
+
+          d. Check whether anything changed on those entities in the last week: a
+          deployment, a version change, a configuration change, a scaling event. A
+          new signature usually has a change behind it, and that change is the most
+          useful line in the whole report.
+
+          e. Use the forecasting and anomaly detection tools available to you to say
+          whether this is expected to continue. If you cannot produce a forecast,
+          say so rather than extrapolating by hand.
+
+
+          Step 4, STOPPED. For each signature you classified as stopped, work out
+          from the evidence whether it reads as a fix, a decommission, or monitoring
+          that went silent. Monitoring that went silent is the dangerous one, so check
+          whether the entity still reports data at all.
+
+
+          Output short numbered notes per step. No headings, no narrative, no formatting.
+          This is working material for the next step.
+
+
+          You have a hard ceiling of eight tool calls for this whole investigation.
+          Spend them on the facts a conclusion turns on, and stop when they are gone
+          rather than leaving the step to fail. Say plainly what you did not get to.'
+        instruction: 'You are a senior site reliability engineer gathering evidence,
+          not writing yet. Classify and prioritise in context rather than by fixed
+          thresholds, and justify every judgement in one line. Use your tools rather
+          than your priors: if a fact is retrievable from this environment, retrieve
+          it. Stay within a sensible tool budget, roughly fifteen calls, and stop
+          early when the evidence is conclusive. Report empty results as empty. Never
+          state a number, an entity, a change or a cause that a tool did not return
+          to you. Where a number looks suspicious, for example a huge count with a
+          tiny median duration, investigate it rather than explaining it away.'
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: ''
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 2
+      conditions:
+        states:
+          top_entities: OK
+          volume_shift: OK
+          pattern_shifts: OK
+      description: CLASSIFY AND INVESTIGATE. The agent decides what changed, then
+        goes and finds out why.
+      predecessors:
+      - volume_shift
+      - pattern_shifts
+      - top_entities
+    mail_report:
+      name: mail_report
+      input:
+        cc: []
+        to:
+        - christoph.enzinger@dynatrace.com
+        bcc: []
+        taskId: '{{ task().id }}'
+        content: '{{ result(''compose_report'').text or result(''compose_report'')
+          }}
+
+
+          ---
+
+
+          Generated by the Agentic Weekly Operations Report workflow on {{ environment().url
+          }}.
+
+          Execution: {{ environment().url }}/ui/apps/dynatrace.automations/executions/{{
+          execution().id }}'
+        subject: 'Weekly operations report: {{ result(''gate'').headline }}'
+        executionId: '{{ execution().id }}'
+        environmentUrl: '{{ environment().url }}'
+      action: dynatrace.email:send-email
+      position:
+        x: 0
+        y: 6
+      conditions:
+        states:
+          compose_report: OK
+      description: ACT. Mail the report.
+      predecessors:
+      - compose_report
+    top_entities:
+      name: top_entities
+      input:
+        query: "fetch dt.davis.problems, from: -14d\n| filter not dt.davis.is_duplicate\
+          \ and not maintenance.is_under_maintenance\n| dedup display_id\n| fieldsAdd\
+          \ dur = toDuration(toLong(resolved_problem_duration))\n| fieldsAdd period\
+          \ = if(event.start >= now() - 7d, \"this_week\", else: \"prior_week\")\n\
+          | expand smartscape.affected_entities\n| fieldsAdd entity_name = smartscape.affected_entities[name],\
+          \ entity_type = smartscape.affected_entities[type]\n| filter isNotNull(entity_name)\n\
+          | summarize this_week = countIf(period == \"this_week\"),\n            prior_week\
+          \ = countIf(period == \"prior_week\"),\n            downtime = sum(if(period\
+          \ == \"this_week\", dur, else: toDuration(0))),\n            categories\
+          \ = collectDistinct(event.category, maxLength: 3),\n            by: {entity_name,\
+          \ entity_type}\n| fieldsAdd delta = this_week - prior_week, downtime_hours\
+          \ = round(downtime / 1h, decimals: 1)\n| fieldsRemove downtime\n| filter\
+          \ this_week > 0\n| sort downtime_hours desc\n| limit 12"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 2
+        y: 1
+      description: SCOREBOARD. Entities carrying the most downtime this week, with
+        prior week counts.
+      predecessors: []
+    volume_shift:
+      name: volume_shift
+      input:
+        query: "fetch dt.davis.problems, from: -14d\n| filter not dt.davis.is_duplicate\
+          \ and not maintenance.is_under_maintenance\n| dedup display_id\n| fieldsAdd\
+          \ dur = toDuration(toLong(resolved_problem_duration))\n| fieldsAdd period\
+          \ = if(event.start >= now() - 7d, \"this_week\", else: \"prior_week\")\n\
+          | summarize problems = countIf(true), downtime = sum(dur), by: {period,\
+          \ event.category}\n| summarize this_week = sum(if(period == \"this_week\"\
+          , problems, else: 0)),\n            prior_week = sum(if(period == \"prior_week\"\
+          , problems, else: 0)),\n            this_week_downtime = sum(if(period ==\
+          \ \"this_week\", downtime, else: toDuration(0))),\n            prior_week_downtime\
+          \ = sum(if(period == \"prior_week\", downtime, else: toDuration(0))),\n\
+          \            by: {event.category}\n| fieldsAdd change_pct = if(prior_week\
+          \ > 0, round((this_week - prior_week) * 100.0 / prior_week, decimals: 1),\
+          \ else: null),\n            this_week_downtime_hours = round(this_week_downtime\
+          \ / 1h, decimals: 1),\n            prior_week_downtime_hours = round(prior_week_downtime\
+          \ / 1h, decimals: 1)\n| fieldsRemove this_week_downtime, prior_week_downtime\n\
+          | sort this_week desc"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 0
+        y: 1
+      description: SCOREBOARD. Volume and downtime by category, this week against
+        the prior week. Deterministic because these numbers go in a table a human
+        will audit.
+      predecessors: []
+    compose_report:
+      name: compose_report
+      input:
+        prompt: What does this week's operations report read like, written from the
+          evidence you gathered in this conversation?
+        instruction: 'You are a senior site reliability engineer briefing a platform
+          owner who has ten minutes. GitHub flavoured markdown for an email, English,
+          under 800 words.
+
+
+          OUTPUT CONTRACT, follow exactly:
+
+          1. Do not print a document title, a date line, or an environment name. The
+          email subject carries them. Start with the conclusion.
+
+          2. First line: one bold sentence, the single most important thing the reader
+          should know.
+
+          3. Every group of numbers goes in a markdown table with a header row.
+
+          4. Paragraphs are three sentences maximum.
+
+          5. Never use an em dash or an en dash. Use commas, semicolons, colons or
+          parentheses.
+
+          6. Separate everywhere what the platform determined from what you inferred.
+
+
+          STRUCTURE, follow it exactly:
+
+
+          Use these level 3 headings, in this order, and include a section only when
+          you have something for it. If you skip one, say why in a single line.
+
+
+          ### The week
+
+          One paragraph. What changed, in plain language, with the numbers that justify
+          it.
+
+
+          ### What moved
+
+          The three to five most significant changes, largest first, as a markdown
+          table with columns: Change, This week, Prior week, Read. The Read column
+          is your one line interpretation. Below the table, at most three sentences
+          on the single most important row. A category whose count and downtime move
+          in opposite directions means the mix of problems changed, so say which.
+
+
+          ### New and stopped
+
+          A markdown table with columns: Signature, Entity type, This week, Baseline
+          weekly avg, Status, Why. Status is New or Stopped and comes from your own
+          classification, and the Why column carries the reason you classified it
+          that way. Then one line per new signature on what it is attached to and
+          what change you found behind it. For stopped signatures, say whether it
+          reads as a fix, a decommission, or monitoring that went silent, and give
+          the evidence that told you which.
+
+
+          ### What we found out
+
+          The investigation, one level 4 heading per item you investigated. What the
+          signature is attached to, what Dynatrace determined as root cause or that
+          it determined none, what changed on the entity, what depends on it, and
+          whether it is forecast to continue. This is the section the reader actually
+          needs, so give it the most room.
+
+
+          ### Where the time went
+
+          A markdown table of the top five entities by downtime, with columns: Entity,
+          Type, Downtime (h), This week, Prior week, Direction. Direction is one word:
+          worse, better, or flat. Take these numbers from the scoreboard exactly as
+          given.
+
+
+          ### What to do first
+
+          A numbered list of exactly three items, one sentence each, each naming the
+          reason and the first check to run.
+
+
+          ### What we could not see
+
+          One line per item from your missing evidence list. Omit if nothing was missing.
+
+
+          Ground every claim in what your tools returned and quote the numbers you
+          rely on.'
+        outputFormat: ''
+        selectedTools:
+          execute-dql::3: true
+          query-problems::16: true
+          get-entity-name::10: true
+          get-problem-by-id::12: true
+        supplementary: ''
+        conversationId: '{{ result(''verdict'').conversationId }}'
+        selectedServers:
+        - name: dynatrace-mcp
+          type: dtp-mcp-gateway
+          tools:
+          - execute-dql
+          - get-entity-name
+          - get-problem-by-id
+          - query-problems
+      action: dynatrace.davis.workflow.actions:prompt-agentic-ai
+      timeout: 1800
+      position:
+        x: 0
+        y: 5
+      conditions:
+        else: SKIP
+        custom: '{{ result(''gate'').proceed }}'
+        states:
+          gate: OK
+      description: WRITE. Same conversation, so the agent writes from what it found
+        and re-queries nothing.
+      predecessors:
+      - gate
+    pattern_shifts:
+      name: pattern_shifts
+      input:
+        query: "fetch dt.davis.problems, from: -28d\n| filter not dt.davis.is_duplicate\
+          \ and not maintenance.is_under_maintenance\n| dedup display_id\n| fieldsAdd\
+          \ e = smartscape.affected_entities[0]\n| fieldsAdd entity_type = e[type],\
+          \ entity_name = e[name]\n| fieldsAdd signature = arrayFirst(splitString(event.name,\
+          \ \":\"))\n| fieldsAdd period = if(event.start >= now() - 7d, \"this_week\"\
+          , else: \"baseline\")\n| summarize this_week = countIf(period == \"this_week\"\
+          ),\n            baseline = countIf(period == \"baseline\"),\n          \
+          \  example_problem_ids = collectDistinct(display_id, maxLength: 3),\n  \
+          \          examples = collectDistinct(entity_name, maxLength: 3),\n    \
+          \        by: {signature, entity_type, event.category}\n| fieldsAdd baseline_weekly_avg\
+          \ = round(baseline / 3.0, decimals: 1)\n| fieldsAdd swing = abs(this_week\
+          \ - baseline_weekly_avg)\n| sort swing desc\n| limit 30"
+      action: dynatrace.automations:execute-dql-query
+      position:
+        x: 1
+        y: 1
+      description: SCOREBOARD. Signature counts this week against a three week baseline,
+        UNCLASSIFIED on purpose. Deciding what counts as new, stopped or ongoing is
+        the agent's job, not a threshold frozen into DQL.
+      predecessors: []
