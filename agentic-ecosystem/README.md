@@ -1,19 +1,10 @@
 # ✨ Agentic Ecosystem
+Agent definitions and configurations on how to integrate Dynatrace with  third-party agent ecosystems and CI/CD platforms. Each solution is its own subfolder with a README, screenshot(s), and the agent/workflow files.
 
-
-
-Agent definitions, prompts, and workflow templates to jump-start Agentic AI use cases on Dynatrace — specifically, integrating Dynatrace observability into third-party agent ecosystems and CI/CD platforms. Each solution is its own subfolder with a README, screenshot(s), and the agent/workflow files.
-
-
-
-> Looking for agents and prompts that run natively on Dynatrace (Assist, Claude Code + dtctl, MCP, API) instead? See \[`agents-and-prompts/`](../agents-and-prompts).
-
+> Looking for agents and prompts that run natively on Dynatrace (Assist, Claude Code + dtctl, MCP, API) instead? See [`agents-and-prompts/`](../agents-and-prompts).
 
 
 ## Solutions
-
-
-
 | Solution | What it does |
 |---|---|
 |[`atlassian-rovo-dev-security-agent/`](./atlassian-rovo-dev-security-agent/) | Rovo Dev agent that turns Dynatrace critical vulnerability findings into triaged Jira tickets |
