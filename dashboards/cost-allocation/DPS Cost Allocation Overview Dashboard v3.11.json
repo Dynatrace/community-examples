@@ -18,7 +18,7 @@
       "type": "query",
       "visible": true,
       "editable": true,
-      "input": "fetch dt.system.events\n| filter event.kind == \"BILLING_USAGE_EVENT\"\n| fieldsAdd value = if($CostAllocation == \"costcenter\", dt.cost.costcenter)\n| fieldsAdd value = if($CostAllocation == \"product\", dt.cost.product, else: value)\n\n| fieldsAdd c = coalesce(value, $unassigned)\n| expand c\n| fieldsAdd c = coalesce(c[key], c)\n| summarize c=collectDistinct(c)\n| expand c",
+      "input": "fetch dt.system.events\n| filter event.kind == \"BILLING_USAGE_EVENT\"\n | fieldsAdd value = if($CostAllocation == \"costcenter\", dt.cost.costcenter)\n| fieldsAdd value = if($CostAllocation == \"product\", dt.cost.product, else: value)\n\n| fieldsAdd c = coalesce(value, $unassigned)\n| expand c\n| fieldsAdd c = coalesce(c[key], c)\n| summarize c=collectDistinct(c)\n| expand c",
       "multiple": true,
       "defaultValue": [
         "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
