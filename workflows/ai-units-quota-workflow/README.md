@@ -182,7 +182,6 @@ To change the interval, edit the workflow trigger in **Automations → [workflow
 ## Related Resources
 
 - [Log Query Quota Workflow](https://github.com/Dynatrace/community-examples/tree/main/cost-intelligence-blueprints/set-quotas-with-workflow) — the original blueprint this is adapted from
-- [TESTING.md](TESTING.md) — internal validation report: full billing event schema, test results, and known environment-specific gotchas
 - [Dynatrace Account Management API](https://developer.dynatrace.com/reference/api-reference/account-management/)
 - [Dynatrace Automations documentation](https://developer.dynatrace.com/develop/automations/)
 - [DQL billing events reference](https://developer.dynatrace.com/reference/system-events/)
