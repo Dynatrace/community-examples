@@ -2,10 +2,9 @@
 This dashboard provides an overview of billing events related to AI-generated usage. 
 For official billing figures, please visit your Account Management portal. 
 
-**Latest update:** 9/17/2026
+**Latest update:** 10/2/2026
 
 *Upcoming improvements:*
-- *Adding detailed usage breakdown (tool) per user*
 - *Breakdown on AI Units drawn per agentic AI capability*
 
 <img alt="Screenshot 1" src="https://github.com/Dynatrace/community-examples/blob/main/dashboards/ai-cost-overview/screenshot1.png" />
