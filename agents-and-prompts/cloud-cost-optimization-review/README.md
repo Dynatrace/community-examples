@@ -21,7 +21,7 @@ The prompts cover AWS and Azure idle/dangling resource detection (EBS volumes, E
 
 This was built and proved in the field for customer ROI conversations. It's a fast way to show how Dynatrace's Cloud Native Connection surfaces actionable cost intelligence.
 
-> Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
+> Questions or issues with this example? Open a [GitHub issue](https://github.com/Dynatrace/community-examples/issues) or ask in **#help-community-examples** on Slack.
 
 ## Screenshots
 

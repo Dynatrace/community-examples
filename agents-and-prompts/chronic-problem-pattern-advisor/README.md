@@ -21,7 +21,7 @@ The agent classifies every signature as **FIX**, **TUNE**, or **SUPPRESS**, sepa
 
 [![Watch it run](https://play.vidyard.com/AAkxcC3w3Q6VYpAYyrPz8s.jpg)](https://video.dynatrace.com/watch/AAkxcC3w3Q6VYpAYyrPz8s)
 
-> Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
+> Questions or issues with this example? Open a [GitHub issue](https://github.com/Dynatrace/community-examples/issues) or ask in **#help-community-examples** on Slack.
 
 ## Screenshots
 

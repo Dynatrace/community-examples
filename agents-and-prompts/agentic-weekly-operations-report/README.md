@@ -21,7 +21,7 @@ The agent isn't asked to summarize metrics. It's instructed to work out what cha
 
 [![Watch it run](https://play.vidyard.com/uX9fGyuCmX7dpejLAqwUwM.jpg)](https://video.dynatrace.com/watch/uX9fGyuCmX7dpejLAqwUwM)
 
-> Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
+> Questions or issues with this example? Open a [GitHub issue](https://github.com/Dynatrace/community-examples/issues) or ask in **#help-community-examples** on Slack.
 
 ## Screenshots
 
