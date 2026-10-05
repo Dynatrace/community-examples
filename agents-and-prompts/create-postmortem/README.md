@@ -21,7 +21,7 @@ The draft, a problem link, and supporting charts are assembled into a Dynatrace 
 
 [![Watch it run](https://play.vidyard.com/kJcCZ9mEAwfiaVdL2oxnFt.jpg)](https://video.dynatrace.com/watch/kJcCZ9mEAwfiaVdL2oxnFt)
 
-> Questions or issues with this example? Open a [GitHub issue](../../issues) or ask in **#help-community-examples** on Slack.
+> Questions or issues with this example? Open a [GitHub issue](https://github.com/Dynatrace/community-examples/issues) or ask in **#help-community-examples** on Slack.
 
 ## Screenshots
 

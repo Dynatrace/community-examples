@@ -1,0 +1,85 @@
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: {{{ .global.Rafay.ClusterName }}}
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: "dynatrace.kubernetes"
+  annotations:
+    feature.dynatrace.com/k8s-app-enabled: "true"
+# Link to api reference for further information: https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters
+spec:
+  apiUrl: https://{{{ .global.Rafay.ClusterLabels.dtEnvId }}}.apps.dynatrace.com/api
+  tokens: {{{ .global.Rafay.ClusterName }}}
+  networkZone: Rafay-{{{ .global.Rafay.ClusterName }}}
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 10Gi
+      limits:
+        cpu: 2000m
+        memory: 10Gi
+    replicas: 1
+  kspm:
+    mappedHostPaths:
+      - /boot
+      - /etc
+      - /proc/sys/kernel
+      - /sys/fs
+      - /sys/kernel/security/apparmor
+      - /usr/lib/systemd/system
+      - /var/lib
+  templates:
+    kspmNodeConfigurationCollector:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-k8s-node-config-collector
+        tag: 1.5.6
+---
+apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: {{{ .global.Rafay.ClusterName }}}-agents
+  namespace: dynatrace
+  labels:
+    dynatrace.com/created-by: "dynatrace.kubernetes"
+# Link to api reference for further information: https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters
+spec:
+  apiUrl: https://{{{ .global.Rafay.ClusterLabels.dtEnvId }}}.apps.dynatrace.com/api
+  tokens: {{{ .global.Rafay.ClusterName }}}
+  networkZone: Rafay-{{{ .global.Rafay.ClusterName }}}
+  metadataEnrichment:
+    enabled: true
+  oneAgent:
+    applicationMonitoring: {}
+  activeGate:
+    capabilities:
+      - routing
+      - debugging
+    resources:
+      requests:
+        cpu: 500m
+        memory: 4Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    replicas: 3
+  templates:
+    otelCollector:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-otel-collector
+        tag: latest
+    logMonitoring:
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-logmodule
+        tag: <INSERT_IMAGE_TAG>
+  logMonitoring: {}
+  telemetryIngest:
+    protocols:
+      - jaeger
+      - otlp
+      - statsd
+      - zipkin
+    serviceName: telemetry-ingest
