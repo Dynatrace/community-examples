@@ -2,7 +2,7 @@
 This dashboard provides an overview of billing events related to AI-generated usage. 
 For official billing figures, please visit your Account Management portal. 
 
-**Latest update:** 10/2/2026
+**Latest update:** 10/5/2026
 
 *Upcoming improvements:*
 - *Breakdown on AI Units drawn per agentic AI capability*
