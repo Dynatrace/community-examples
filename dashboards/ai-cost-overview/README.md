@@ -7,7 +7,7 @@ For official billing figures, please visit your Account Management portal.
 *Upcoming improvements:*
 - *Breakdown on AI Units drawn per agentic AI capability*
 
-<img alt="Screenshot 1" src="https://github.com/Dynatrace/community-examples/blob/main/dashboards/ai-cost-overview/screenshot1.png" />
+<img alt="Screenshot 1" src="https://github.com/Dynatrace/community-examples/blob/main/dashboards/ai-cost-overview/screenshot.png" />
 
 ## 📊 What You’ll See
 
