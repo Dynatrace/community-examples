@@ -1,0 +1,246 @@
+metadata:
+  version: "1"
+  dependencies:
+    apps:
+      - id: dynatrace.automations
+        version: ^1.728.0
+      - id: dynatrace.slack
+        version: ^2.0.1
+  inputs:
+    - type: connection
+      schema: app:dynatrace.slack:connection
+      targets:
+        - tasks.alert_in_slack.connection
+workflow:
+  title: "[Sample] Slack notification for critical vulnerabilities"
+  tasks:
+    alert_in_slack:
+      name: alert_in_slack
+      description: "Send a Slack notification for the vulnerability findings. "
+      action: dynatrace.slack:slack-send-message
+      active: true
+      input:
+        channel: C06VDU72NCW
+        message: >-
+          {
+          	"blocks": [
+          		{
+          			"type": "header",
+          			"text": {
+          				"type": "plain_text",
+          				"text": "{{ (_.finding.vulnerability_finding_events|first).get("dt.security.risk.level") }} vulnerability was detected!",
+          				"emoji": true
+          			}
+          		},
+          		{
+          			"type": "divider"
+          		},
+          		{
+          			"type": "section",
+          			"text": {
+          				"type": "mrkdwn",
+          				"text": "{{ (_.finding.vulnerability_finding_events|first).get("dt.security.risk.level") }} vulnerability `{{ _.finding.get("vulnerability.id") }}` was detected in `{{ (_.finding.vulnerability_finding_events|first).get("object.id") }}`"
+          			},
+          			"accessory": {
+          				"type": "image",
+          				"image_url": "https://dt-cdn.net/images/appsec-logo-with-bg-and-rounded-corners-200-8253a2bc6e.png",
+          				"alt_text": "Dynatrace Application Security"
+          			}
+          		},
+          		{
+          			"type": "divider"
+          		},
+          		{
+          			"type": "rich_text",
+          			"elements": [
+          				{
+          					"type": "rich_text_section",
+          					"elements": [
+          						{
+          							"type": "text",
+          							"text": "Details:\n"
+          						}
+          					]
+          				},
+          				{
+          					"type": "rich_text_list",
+          					"style": "bullet",
+          					"elements": [
+          						{
+          							"type": "rich_text_section",
+          							"elements": [
+          								{
+          									"type": "text",
+          									"text": "Finding source: "
+          								},
+          								{
+          									"type": "text",
+          									"text": "{{ (_.finding.vulnerability_finding_events|first).get("event.provider") }}"
+          								}
+          							]
+          						},
+          						{
+          							"type": "rich_text_section",
+          							"elements": [
+          								{
+          									"type": "text",
+          									"text": "Affected object id: "
+          								},
+          								{
+          									"type": "text",
+          									"text": "{{ (_.finding.vulnerability_finding_events|first).get("object.id") }}"
+          								}
+          							]
+          						},
+          						{
+          							"type": "rich_text_section",
+          							"elements": [
+          								{
+          									"type": "text",
+          									"text": "Number of vulnerable components: "
+          								},
+          								{
+          									"type": "text",
+          									"text": "{{ (_.finding.vulnerable_components_count) }}"
+          								}
+          							]
+          						}
+          					]
+          				}
+          			]
+          		},
+          		{
+          			"type": "divider"
+          		},
+          		{
+          			"type": "section",
+          			"text": {
+          				"type": "mrkdwn",
+          				"text": "Click to view all vulnerabilities findings in a notebook."
+          			},
+          			"accessory": {
+          				"type": "button",
+          				"text": {
+          					"type": "plain_text",
+          					"text": "View all findings",
+          					"emoji": true
+          				},
+                          "url": "{{ environment().url }}/ui/intent/dynatrace.notebooks/view-query#%7B%22title%22%3A%22List%20recent%20vulnerability%20findings%22%2C%22visualizationSettings%22%3A%7B%22thresholds%22%3A%5B%5D%2C%22chartSettings%22%3A%7B%22gapPolicy%22%3A%22gap%22%2C%22circleChartSettings%22%3A%7B%22groupingThresholdType%22%3A%22relative%22%2C%22groupingThresholdValue%22%3A0%2C%22valueType%22%3A%22relative%22%7D%2C%22categoryOverrides%22%3A%7B%7D%2C%22curve%22%3A%22linear%22%2C%22pointsDisplay%22%3A%22auto%22%2C%22categoricalBarChartSettings%22%3A%7B%22layout%22%3A%22horizontal%22%2C%22categoryAxisTickLayout%22%3A%22horizontal%22%2C%22scale%22%3A%22absolute%22%2C%22groupMode%22%3A%22stacked%22%2C%22colorPaletteMode%22%3A%22multi-color%22%7D%2C%22colorPalette%22%3A%22categorical%22%2C%22valueRepresentation%22%3A%22absolute%22%7D%2C%22singleValue%22%3A%7B%22showLabel%22%3Atrue%2C%22label%22%3A%22%22%2C%22prefixIcon%22%3A%22%22%2C%22autoscale%22%3Atrue%2C%22alignment%22%3A%22center%22%2C%22colorThresholdTarget%22%3A%22value%22%7D%2C%22table%22%3A%7B%22rowDensity%22%3A%22condensed%22%2C%22enableSparklines%22%3Afalse%2C%22hiddenColumns%22%3A%5B%5D%2C%22linewrapEnabled%22%3Afalse%2C%22lineWrapIds%22%3A%5B%5D%2C%22monospacedFontEnabled%22%3Afalse%2C%22monospacedFontColumns%22%3A%5B%5D%2C%22firstVisibleRowIndex%22%3A0%2C%22columnWidths%22%3A%7B%7D%2C%22columnTypeOverrides%22%3A%5B%5D%7D%2C%22honeycomb%22%3A%7B%22shape%22%3A%22hexagon%22%2C%22legend%22%3A%7B%22hidden%22%3Afalse%2C%22position%22%3A%22auto%22%7D%2C%22displayedFields%22%3A%5B%5D%2C%22dataMappings%22%3A%7B%7D%2C%22colorMode%22%3A%22color-palette%22%2C%22colorPalette%22%3A%22categorical%22%7D%2C%22histogram%22%3A%7B%22legend%22%3A%22auto%22%2C%22yAxis%22%3A%7B%22label%22%3A%22Frequency%22%2C%22scale%22%3A%22linear%22%7D%2C%22colorPalette%22%3A%22categorical%22%2C%22dataMappings%22%3A%5B%5D%2C%22variant%22%3A%22single%22%7D%7D%2C%22dt.timeframe%22%3A%7B%22from%22%3A%22now()-7d%22%2C%22to%22%3A%22now()%22%7D%2C%22dt.query%22%3A%22fetch%20events%5Cn%2F%2F%20data%20access%5Cn%7C%20filter%20dt.system.bucket%20%3D%3D%20%5C%22default_security_custom_events%5C%22%5Cn%20%20%20%20%20AND%20event.type%20%3D%3D%20%5C%22VULNERABILITY_FINDING%5C%22%5Cn%20%20%20%20%20AND%20isNotNull(component.name)%5Cn%7C%20dedup%20%7Bobject.id%2C%20vulnerability.id%2C%20component.name%7D%2C%20sort%3A%20%7Btimestamp%20desc%7D%5Cn%2F%2F%20aggregation%20and%20custom%20filtering%5Cn%7C%20sort%20timestamp%20desc%22%2C%22hideInput%22%3Afalse%2C%22sourceApplication%22%3A%22dynatrace.notebooks%22%7D",
+          				"action_id": "button-action"
+          			}
+          		}
+          	]
+          }
+        reaction: []
+        connection: ""
+        workflowID: "{{ execution().workflow.id }}"
+        channelType: id
+        executionID: "{{ execution().id }}"
+        executionDate: "{{ execution().started_at }}"
+        appendToThread: false
+        selectedRequestType: 0
+        attachmentToggleValue: none
+      position:
+        x: 0
+        y: 2
+      predecessors:
+        - get_vulnerabilites
+      conditions:
+        states:
+          get_vulnerabilites: SUCCESS
+        custom: '{{result("get_vulnerabilites").records|length > 0}}'
+      concurrency: 1
+      withItems: finding in {{ result("get_vulnerabilites").records }}
+    get_vulnerabilites:
+      name: get_vulnerabilites
+      description: Query for new vulnerability findings in the last 24 hours.
+      action: dynatrace.automations:execute-dql-query
+      active: true
+      input:
+        query: >-
+          // The query has a rolling window of 7 days and the last 24hrs.
+
+          // Vulnerability finding events which have already been reported
+
+          // before the current 24hr window will not be reported again.
+
+          fetch security.events, from: now() - 7d
+
+          | filter dt.system.bucket == "default_securityevents"
+               AND event.kind == "SECURITY_EVENT"
+               AND event.type == "VULNERABILITY_FINDING"
+               AND isNotNull(component.name)
+               AND dt.security.risk.level == "CRITICAL"
+          // Aggregate vulnerability findings per object.id, vulnerability, 
+
+          // component and component version.
+
+          | summarize {
+                vulnerable_components_count = count(),
+                vulnerability_finding_events = collectArray(
+                  record(
+                    object.id = object.id,
+                    component.name = component.name,
+                    component.version = component.version,
+                    event.provider = event.provider,
+                    dt.security.risk.level = dt.security.risk.level,
+                    vulnerability.id = vulnerability.id,
+                    ingest_time = timestamp
+                  )
+                )
+              }, by:{ object.id, vulnerability.id, component.name, component.version }
+          // Filter out, if this vulnerability for the object and the component 
+
+          // and version was already reported before the last 24 hours.
+
+          // For example, if the same vulnerability was reported multiple times
+
+          // during the last 7 days, don't report it again.
+
+          | filterOut iAny(vulnerability_finding_events[][ingest_time] < now() -
+
+          24h)
+
+          // Expand and deduplicate for repetitive findings if they
+
+          // were reported more than once in the last 24 hours.
+
+          | expand vulnerability_finding_events
+
+          | dedup { vulnerability_finding_events[object.id],
+          vulnerability_finding_events[vulnerability.id],
+          vulnerability_finding_events[component.name],
+          vulnerability_finding_events[component.version] } 
+
+          // Aggregate again to count the unique vulnerable components for each
+          vulnerability.
+
+          | summarize {
+                vulnerable_components_count = count(),
+                vulnerability_finding_events = collectArray(
+                  vulnerability_finding_events
+                )
+              }, by:{ vulnerability.id }
+          | sort vulnerability_finding_events[][ingest_time] desc
+      customSampleResult: {}
+      position:
+        x: 0
+        y: 1
+      predecessors: []
+      conditions:
+        states: {}
+        custom: ""
+  description: ""
+  trigger:
+    schedule:
+      rule: null
+      trigger:
+        type: time
+        time: 08:00
+      timezone: Europe/Vienna
+      isActive: false
+      isFaulty: false
+      filterParameters:
+        earliestStart: 2024-04-10
+      inputs: {}
+  schemaVersion: 3
