@@ -14,6 +14,7 @@ Follow the [repository standards](../STANDARDS.md) and the [quality bar](../CONT
 
 Solutions that contain a notebook but live in another folder (because their primary artifact is a dashboard or launchpad). The link points to each solution's real home.
 
+- [Red Hat Ansible Auto-Remediation](../workflows/red-hat-ansible-auto-remediation/) — Workflow + Notebook (a tutorial notebook guides the setup)
 - [Cost Allocation](../dashboards/cost-allocation/) — Dashboard + Notebook (the dashboard ships with a Notebook helper)
 
 *(See [STANDARDS.md §6](../STANDARDS.md#6-hybrid-solutions--cross-linking) for how cross-linking works.)*
