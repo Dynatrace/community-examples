@@ -11,7 +11,6 @@ Agent definitions and configurations on how to integrate Dynatrace with  third-p
 |[github-custom-agent](./github-custom-agent/) | Custom GitHub Copilot agent configuration for Dynatrace-aware code assistance |
 |[github-dependabot-alert-triaging](./github-dependabot-alert-triaging/) | GitHub Actions workflows that verify Dependabot alerts against Dynatrace runtime data and assign triaged issues to Copilot |
 |[kiro-cli-security-agent](./kiro-cli-security-agent/) | Kiro CLI agent that triages AWS Security Hub findings using Dynatrace security context |
-|[workflow-authoring-agent-instructions](./workflow-authoring-agent-instructions/) | AGENTS.md instructions that teach AI coding assistants (Copilot, Cursor, Claude Code, Kiro) to write and review Dynatrace workflows |
 |[kiro-power](./kiro-power/) | Kiro agent power-up that adds Dynatrace observability context to Kiro's coding workflows |
 
 **Before contributing:** follow the [repository standards](../STANDARDS.md) and the [quality bar](../CONTRIBUTING.md), and start from the [README template](../templates/EXAMPLE-README-template.md).

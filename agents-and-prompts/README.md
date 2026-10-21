@@ -14,6 +14,7 @@ Each solution is self-contained in its own subfolder with a README explaining wh
 | [`chronic-problem-pattern-advisor/`](./chronic-problem-pattern-advisor/) | Ranks 30 days of chronic problem signatures by accumulated downtime and recommends FIX / TUNE / SUPPRESS for each, with the evidence needed to confirm the cause | Workflow + Agentic AI prompt task |
 | [`cloud-cost-optimization-review/`](./cloud-cost-optimization-review/) | Analyses a tenant's Cloud Native Connection data for AWS/Azure idle resources and Kubernetes over-provisioning, and produces a customer-ready HTML savings report | Claude Code (dtctl) or Dynatrace Assist |
 | [`create-postmortem/`](./create-postmortem/) | Finds yesterday's most costly resolved incident, drafts a postmortem with root-cause confidence and corrective actions, and builds a Dynatrace Notebook from it | Workflow + Agentic AI prompt task |
+| [`workflow-authoring-agent-instructions/`](./workflow-authoring-agent-instructions/) | `AGENTS.md` instructions that teach AI coding assistants to write and review Dynatrace workflows: formats, actions, Jinja2, best practices and a PR review checklist | GitHub Copilot, Cursor, Claude Code, Kiro (AGENTS.md) |
 
 ## Prerequisites shared across solutions
 
