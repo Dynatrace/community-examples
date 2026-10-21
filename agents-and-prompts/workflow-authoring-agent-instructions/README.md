@@ -51,4 +51,4 @@ Teach your AI coding assistant to write and review correct Dynatrace workflows, 
 ## Related solutions
 
 - [Workflows](../../workflows/): sample workflows to learn from or give to the assistant as examples
-- [GitHub Custom Agent](../github-custom-agent/)
+- [GitHub Custom Agent](../../agentic-ecosystem/github-custom-agent/)
