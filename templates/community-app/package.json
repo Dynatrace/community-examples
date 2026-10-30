@@ -1,0 +1,64 @@
+{
+  "name": "community-app-template",
+  "version": "0.1.0",
+  "description": "Starter for a Dynatrace Community App",
+  "scripts": {
+    "build": "dt-app build",
+    "start": "dt-app dev",
+    "create:function": "dt-app function create",
+    "deploy": "dt-app deploy",
+    "uninstall": "dt-app uninstall",
+    "update": "dt-app update",
+    "info": "dt-app info",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check:repo": "node scripts/check-repo.mjs",
+    "check": "npm run check:repo && npm run lint && npm test && npm run build",
+    "rename": "node scripts/rename-app.mjs"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@dynatrace-sdk/app-environment": "^1.1.5",
+    "@dynatrace-sdk/client-query": "^1.27.0",
+    "@dynatrace-sdk/error-handlers": "^1.3.2",
+    "@dynatrace-sdk/navigation": "^2.3.1",
+    "@dynatrace-sdk/react-hooks": "^1.15.0",
+    "@dynatrace-sdk/user-preferences": "^1.1.5",
+    "@dynatrace/strato-components": "^3.16.0",
+    "@dynatrace/strato-design-tokens": "^1.7.1",
+    "@dynatrace/strato-icons": "^2.6.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-is": "^18.3.1",
+    "react-intl": "7.1.14",
+    "react-router-dom": "^6.30.6"
+  },
+  "overrides": {
+    "react-intl": { "typescript": "$typescript" },
+    "@microsoft/eslint-plugin-sdl": { "eslint": "^10.0.0" },
+    "eslint-plugin-react": { "eslint": "^10.0.0" }
+  },
+  "devDependencies": {
+    "dt-app": "^1.20.0",
+    "@eslint/js": "^10.0.1",
+    "@microsoft/eslint-plugin-sdl": "^1.1.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "eslint": "^10.10.0",
+    "eslint-plugin-n": "^18.3.0",
+    "eslint-plugin-no-secrets": "^2.3.3",
+    "eslint-plugin-no-unsanitized": "^4.1.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-security": "^4.0.1",
+    "jsdom": "^26.1.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^3.2.4"
+  }
+}

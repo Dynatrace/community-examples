@@ -1,0 +1,9 @@
+Community App Template
+
+Portions of this template (project structure, eslint configuration, package
+dependencies and the Data page) are derived from the Dynatrace App Toolkit
+templates: https://github.com/Dynatrace/dt-app-templates
+Copyright Dynatrace, licensed under the Apache License 2.0.
+
+Add the Apache-2.0 LICENSE file to your repository (copy it from
+https://github.com/Dynatrace/community-examples/blob/main/LICENSE.txt).

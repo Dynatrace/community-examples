@@ -16,5 +16,9 @@ Most apps here are delivered via the Hub using [Hub subscriptions](https://docs.
 2. **Get your channel ID** — once we verify your request, we'll send you the channel ID.
 3. **Subscribe & install** — open **Settings → General → Hub subscriptions → Add subscription**, name it, paste the channel ID, and **Save**. Then search for the app in **Hub** and install it.
 
-## Contributing an app
-Please have a look at [this page](https://github.com/Dynatrace/community-examples/blob/main/CONTRIBUTING.md).
+## Building and contributing an app
+
+1. Start from the template: `npx degit Dynatrace/community-examples/templates/community-app my-app`
+2. Work through the template's `CHECKLIST.md`; `npm run check` must pass.
+3. Create your own GitHub repository for the app. "Report issue" in the app's help menu opens its issues.
+4. Add an index entry here (README with the Hub listing link) and follow [CONTRIBUTING.md](../CONTRIBUTING.md).
