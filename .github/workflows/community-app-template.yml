@@ -1,0 +1,24 @@
+name: Community app template
+on:
+  pull_request:
+    paths:
+      - "templates/community-app/**"
+      - ".github/workflows/community-app-template.yml"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: templates/community-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install              # use `npm ci` once package-lock.json is committed
+      - run: npm run check:repo
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+        continue-on-error: true       # informational until dependency findings are reviewed

@@ -1,0 +1,23 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "importHelpers": false,
+    "jsx": "react",
+    "lib": ["DOM", "DOM.Iterable", "esnext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "rootDir": ".",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "ESNext",
+    "types": ["node"],
+    "typeRoots": ["../node_modules/@types", "../node_modules/@dynatrace"]
+  },
+  "exclude": ["node_modules", "dist", "actions"]
+}

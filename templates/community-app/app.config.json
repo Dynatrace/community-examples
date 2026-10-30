@@ -1,0 +1,13 @@
+{
+  "environmentUrl": "https://{your-environment-id}.apps.dynatrace.com",
+  "app": {
+    "id": "my.team.sample.trace.explorer",
+    "name": "Sample Trace Explorer",
+    "description": "One sentence on what problem this app solves.",
+    "version": "0.1.0",
+    "scopes": [
+      { "name": "storage:logs:read", "comment": "Example page runs a DQL query on logs. Remove if unused." },
+      { "name": "storage:buckets:read", "comment": "Needed by the DQL query editor. Remove if unused." }
+    ]
+  }
+}

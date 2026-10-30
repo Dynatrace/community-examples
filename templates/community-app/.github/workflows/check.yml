@@ -1,0 +1,21 @@
+name: Community App Checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install              # switch to `npm ci` once package-lock.json is committed
+      - run: npm run check:repo       # naming, scopes, README, header guarantees, secrets/URLs
+      - run: npm run lint             # Strato imports, banned libs, security rules, i18n warning
+      - run: npm test                 # unit tests
+      - run: npm audit --audit-level=high
+        continue-on-error: true       # informational until transitive dependency findings are reviewed
+      - run: npm run build            # verified locally: runs without sign-in
+      # TODO: add Playwright checks (header position, axe accessibility, responsive widths)

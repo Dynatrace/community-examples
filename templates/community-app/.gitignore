@@ -1,0 +1,40 @@
+# DT APP files
+.dt-app/*
+!/.dt-app/deployment.json
+
+# Compiled output
+/dist
+/build
+/tmp
+
+# Deployment artifact
+/out
+
+# Dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+*.iml
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# IDE - VSCode
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Local environment overrides (never commit tenant URLs or tokens)
+.env
+.env.local
