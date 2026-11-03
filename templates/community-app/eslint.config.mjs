@@ -1,6 +1,5 @@
 // Based on the official dt-app default template (Apache-2.0), plus community rules:
-//  - banned UI/state libraries (tech radar: Hold)
-//  - warn on literal strings in JSX (use react-intl)
+// (Strato usage and library choices are recommendations, not enforced.)
 import eslint from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
@@ -24,11 +23,6 @@ const restrictedImports = [
         name: "@dynatrace/strato-design-tokens",
         message: "Import from a sub package, e.g. '@dynatrace/strato-design-tokens/colors'.",
       },
-      { name: "redux", message: "Community standard: use a lighter state library (e.g. Zustand, Jotai)." },
-      { name: "styled-components", message: "Community standard: use Strato components, CSS modules or design tokens." },
-    ],
-    patterns: [
-      { group: ["@emotion/*"], message: "Community standard: use Strato components, CSS modules or design tokens." },
     ],
   },
 ];
@@ -70,7 +64,6 @@ export default defineConfig([
       "react/prop-types": "off",
       "react/no-danger": "warn",
       "react/jsx-no-script-url": "warn",
-      "react/jsx-no-literals": ["warn", { noStrings: false, allowedStrings: ["/", "-", "|"] }],
       "nounsanitized/method": "warn",
       "nounsanitized/property": "warn",
       "@microsoft/sdl/no-inner-html": "warn",
@@ -84,6 +77,6 @@ export default defineConfig([
   },
   {
     files: ["**/*.test.ts", "**/*.test.tsx"],
-    rules: { "react/jsx-no-literals": "off", "@typescript-eslint/no-unsafe-assignment": "off" },
+    rules: { "@typescript-eslint/no-unsafe-assignment": "off" },
   },
 ]);

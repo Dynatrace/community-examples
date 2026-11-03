@@ -12,7 +12,7 @@
     "info": "dt-app info",
     "lint": "eslint .",
     "test": "vitest run",
-    "check:repo": "node scripts/check-repo.mjs",
+    "check:repo": "node scripts/check-repo.mjs --require-header",
     "check": "npm run check:repo && npm run lint && npm test && npm run build",
     "rename": "node scripts/rename-app.mjs"
   },

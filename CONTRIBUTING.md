@@ -21,7 +21,7 @@ Every solution, regardless of category, should be:
 
 Per category:
 - ✨ **Agentic** — clear intent and boundaries; destructive actions require explicit confirmation; tools/permissions documented.
-- 🧩 **Apps** — start from [`templates/community-app`](./templates/community-app) and complete its `CHECKLIST.md`; `npm run check` must pass. Follows the Strato design system and current patterns; requests only the permissions it needs; shows the **Community** chip and a **Report issue** path to the app's own GitHub repo.
+- 🧩 **Apps** — clearly marked as community-built (the template's `CommunityHeader` does this), with a **Documentation** link and a **Report issue** path to the app's own GitHub repo; requests only the permissions it needs. Start from [`templates/community-app`](./templates/community-app) or use just its header and [checklist](./templates/community-app/CHECKLIST.md).
 - 🗺 **Blueprints** — lists every component and how they fit together, with a complete end-to-end setup path.
 - ⚙️ **Config as Code** — fully parameterized; clearly states what it creates or modifies.
 - 📊 **Dashboards, Notebooks & Launchpads** — meaningful layout and actionable insights, not walls of metrics.
