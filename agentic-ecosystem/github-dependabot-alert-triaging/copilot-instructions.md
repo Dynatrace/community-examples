@@ -9,7 +9,7 @@
   1. Get the open vulnerabilities reported by Dynatrace RVA (Runtime Vulnerability Analytics) directly or indirectly affecting a specific host (in this example, i-05f1305a50721e04d).
 
   ```fetch security.events
-  | filter dt.system.bucket=="default_securityevents_builtin"
+  | filter dt.openpipeline.source == "built-in-security-events"
       AND event.provider=="Dynatrace"
       AND event.type=="VULNERABILITY_STATE_REPORT_EVENT"
       AND event.level=="ENTITY"
@@ -45,7 +45,7 @@
   2. Query for security events for a specific vulnerability (CVE-2023-41419) from Dynatrace RVA:
 
   ```fetch security.events
-  | filter dt.system.bucket=="default_securityevents_builtin"
+  | filter dt.openpipeline.source == "built-in-security-events"
       AND event.provider=="Dynatrace"
       AND event.type=="VULNERABILITY_STATE_REPORT_EVENT"
       AND event.level=="ENTITY"
