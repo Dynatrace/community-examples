@@ -3,13 +3,14 @@
  *
  * Built from documented Strato AppHeader slots:
  *   Navigation (logo + tabs) | Menus (optional settings) | HelpMenu
- * The Community chip next to the app name is Strato's release-phase chip on the logo, with its label
- * overridden to "Community" (see COMMUNITY_CHIP_OVERRIDE_ID below).
+ * The "By Community" chip next to the app name is Strato's release-phase chip on the logo, with its label
+ * overridden to "By Community" (see COMMUNITY_CHIP_OVERRIDE_ID below).
  *
  * What it guarantees (checked by `npm run check:repo`):
- *  - "Community" chip + tooltip: the app is NOT officially supported by Dynatrace
- *  - HelpMenu: What's new, Get started, Documentation, Share feedback (platform overlay),
- *    Report issue (GitHub issues), About this app (shows the disclaimer)
+ *  - "By Community" chip + tooltip: the app is NOT officially supported by Dynatrace
+ *  - HelpMenu: What's new, Documentation (mandatory), Report issue (the app's GitHub issues),
+ *    About this app (shows the disclaimer). No platform "Share feedback": feedback for a community
+ *    app goes to its maintainers via Report issue.
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -31,7 +32,7 @@ import { community, issuesUrl } from "../community.config";
 /**
  * Strato renders the logo's release-phase chip with a translated label. The "Preview" label has this
  * message id in @dynatrace/strato-components 3.16.x (content/release-phase-indicator/messages).
- * We override that one message so the chip next to the app name reads "Community".
+ * We override that one message so the chip next to the app name reads "By Community".
  * If a Strato update changes the id, the chip falls back to "Preview": `npm test` catches this.
  */
 export const COMMUNITY_CHIP_OVERRIDE_ID = "92og/kC9Mmwxmmg0";
@@ -41,22 +42,20 @@ export type CommunityHeaderProps = {
   tabs?: { label: string; to: string }[];
   /** Renders a settings button (left of the help menu) when set. */
   settingsHref?: string;
-  /** Optional help links. */
-  getStartedUrl?: string;
+  /** Documentation link (mandatory entry in the help menu). Defaults to the app repo README. */
   documentationUrl?: string;
 };
 
 export const CommunityHeader = ({
   tabs = [],
   settingsHref,
-  getStartedUrl = `${community.repoUrl}#readme`,
   documentationUrl = `${community.repoUrl}#readme`,
 }: CommunityHeaderProps) => {
   const intl = useIntl();
   const { pathname } = useLocation();
   const [aboutOpen, setAboutOpen] = useState(false);
 
-  const chipLabel = intl.formatMessage({ id: "header.community.chip", defaultMessage: "Community" });
+  const chipLabel = intl.formatMessage({ id: "header.community.chip", defaultMessage: "By Community" });
   const chipTooltip = intl.formatMessage({
     id: "header.community.tooltip",
     defaultMessage:
@@ -90,7 +89,7 @@ export const CommunityHeader = ({
             as={Link}
             to="/"
             appName={getAppName().replace(" (dev)", "")}
-            releasePhase="preview" // label is overridden to "Community" via IntlProvider messages
+            releasePhase="preview" // label is overridden to "By Community" via IntlProvider messages
           />
           {tabs.map((tab) => (
             <AppHeader.NavigationItem
@@ -123,9 +122,7 @@ export const CommunityHeader = ({
         <HelpMenu
           entries={{
             whatsNew: "default",
-            getStarted: { href: getStartedUrl },
             documentation: { href: documentationUrl },
-            feedback: "default", // opens the in-product feedback overlay
           }}
         >
           {/* Children render after the built-in entries, in this order */}

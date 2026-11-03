@@ -24,10 +24,10 @@ const setup = (props = {}) =>
   );
 
 describe("CommunityHeader", () => {
-  it("always shows the Community chip", () => {
+  it("always shows the By Community chip", () => {
     setup();
     // Strato renders the logo chip with our overridden label; guards against a changed Strato message id
-    expect(screen.getAllByText("Community").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("By Community").length).toBeGreaterThan(0);
     expect(screen.queryByText("Preview")).toBeNull();
   });
 
