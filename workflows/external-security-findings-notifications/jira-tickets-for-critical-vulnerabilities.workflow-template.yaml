@@ -29,7 +29,7 @@ workflow:
 
           fetch security.events, from: now() - 7d
 
-          | filter dt.system.bucket == "default_securityevents"
+          | filter dt.openpipeline.source != "built-in-security-events"
                AND event.kind == "SECURITY_EVENT"
                AND event.type == "VULNERABILITY_FINDING"
                AND isNotNull(component.name)

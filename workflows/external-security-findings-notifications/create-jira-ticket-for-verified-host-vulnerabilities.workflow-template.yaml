@@ -19,7 +19,7 @@ workflow:
   trigger:
     eventTrigger:
       isActive: true
-      filterQuery: 'dt.system.bucket=="default_securityevents"
+      filterQuery: 'dt.openpipeline.source!="built-in-security-events"
 
         and event.type=="VULNERABILITY_FINDING"
 
@@ -30,7 +30,7 @@ workflow:
       triggerConfiguration:
         type: event
         value:
-          query: 'dt.system.bucket=="default_securityevents"
+          query: 'dt.openpipeline.source!="built-in-security-events"
 
             and event.type=="VULNERABILITY_FINDING"
 

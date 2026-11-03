@@ -25,7 +25,7 @@ workflow:
 
           fetch security.events, from: now() - 7d
 
-          | filter dt.system.bucket == "default_securityevents"
+          | filter dt.openpipeline.source != "built-in-security-events"
                AND event.kind == "SECURITY_EVENT"
                AND dt.security.risk.level == "CRITICAL"
                AND isNotNull(object.id) AND isNotNull(object.type)
