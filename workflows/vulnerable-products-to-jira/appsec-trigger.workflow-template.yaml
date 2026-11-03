@@ -17,7 +17,7 @@ workflow:
           fetch security.events, from:now()-45m
 
             | filter event.provider=="Dynatrace"
-            | filter dt.system.bucket=="default_securityevents_builtin"
+            | filter dt.openpipeline.source == "built-in-security-events"
             | filter event.kind == "SECURITY_EVENT"
             | filter event.category == "VULNERABILITY_MANAGEMENT"
             | filter event.type == "VULNERABILITY_STATE_REPORT_EVENT"
