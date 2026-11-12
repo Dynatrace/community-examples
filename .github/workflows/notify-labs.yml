@@ -1,0 +1,36 @@
+name: Notify Dynatrace Labs
+
+# After every merge to main, tell the Dynatrace Labs catalog sync to run, so new,
+# changed or removed solutions appear on the Labs internal preview within minutes
+# (instead of waiting for its daily run). Labs is published from that preview to
+# https://labs.dynatrace.com through a reviewed pull request.
+#
+# Needs the secret LABS_DISPATCH_TOKEN: a token that may send repository_dispatch
+# to Dynatrace-Internal/productoperations-knowledgebase-restricted (GitHub App or
+# fine-grained token with "Contents: read and write" on that one repository).
+# Without the secret this workflow only logs a notice; nothing else depends on it.
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send repository_dispatch to the Labs sync
+        env:
+          GH_TOKEN: ${{ secrets.LABS_DISPATCH_TOKEN }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::Skipped: secret LABS_DISPATCH_TOKEN is not set; Labs picks the change up on its daily sync."
+            exit 0
+          fi
+          gh api -X POST repos/Dynatrace-Internal/productoperations-knowledgebase-restricted/dispatches \
+            -f event_type=community-examples-updated \
+            -f "client_payload[sha]=$SHA"
+          echo "Labs sync requested for $SHA."
