@@ -1,0 +1,93 @@
+{
+  "title": "In-product feedback – Weekly AI digest",
+  "description": "Every Monday, summarizes last week's feedback with generative AI and posts the digest to Slack. Set the Slack connection and channel ID after import.",
+  "type": "STANDARD",
+  "schemaVersion": 4,
+  "isPrivate": true,
+  "input": {},
+  "taskDefaults": {},
+  "trigger": {
+    "schedule": {
+      "isActive": true,
+      "isFaulty": false,
+      "trigger": {
+        "type": "cron",
+        "cron": "0 8 * * 1"
+      },
+      "rule": null,
+      "filterParameters": {},
+      "timezone": "UTC",
+      "inputs": {}
+    }
+  },
+  "tasks": {
+    "fetch_feedback": {
+      "name": "fetch_feedback",
+      "action": "dynatrace.automations:execute-dql-query",
+      "description": "Fetch last week's feedback from Grail",
+      "position": {
+        "x": 0,
+        "y": 1
+      },
+      "input": {
+        "query": "fetch bizevents, from: now() - 7d\n| filter event.type == \"feedback-form-submit\"\n| fieldsAdd appName = coalesce(appName, \"Unknown\")\n| fields timestamp, appName, appVersion, feedbackType, thumbs, feedback, device.type, geo.country.name\n| sort timestamp asc\n| limit 500\n",
+        "failOnEmptyResult": false
+      }
+    },
+    "summarize": {
+      "name": "summarize",
+      "action": "dynatrace.davis.workflow.actions:prompt-generative-ai",
+      "description": "Summarize the feedback with generative AI",
+      "position": {
+        "x": 0,
+        "y": 2
+      },
+      "predecessors": [
+        "fetch_feedback"
+      ],
+      "conditions": {
+        "states": {
+          "fetch_feedback": "OK"
+        },
+        "custom": "{{ result('fetch_feedback').records | length > 0 }}"
+      },
+      "input": {
+        "config": "disabled",
+        "prompt": "Summarize the following in-product user feedback from the last 7 days for a product management team. It contains {{ result('fetch_feedback').records | length }} entries.\n\n{% for r in result('fetch_feedback').records %}\n- App: {{ r.appName }} {{ r.appVersion }} | Feature: {{ r.feedbackType }} | Rating: {{ r.thumbs | default('none', true) }} | Feedback: {{ r.feedback | default('(no text)', true) }}\n{% endfor %}\n\nWhat are the main issues, what is positive, and which entries should the product team look at first? Answer in Slack mrkdwn (single *asterisks* for bold, \"•\" for bullets, no # headings, no tables), under 300 words, with the sections *Summary*, *Top issues*, *Positive feedback* and *Worth a look*.\n",
+        "autoTrim": true,
+        "instruction": "",
+        "supplementary": ""
+      }
+    },
+    "post_digest": {
+      "name": "post_digest",
+      "action": "dynatrace.slack:slack-send-message",
+      "description": "Post the digest to Slack",
+      "position": {
+        "x": 0,
+        "y": 3
+      },
+      "predecessors": [
+        "summarize"
+      ],
+      "conditions": {
+        "states": {
+          "summarize": "OK"
+        }
+      },
+      "input": {
+        "reaction": [],
+        "connection": "",
+        "channelType": "id",
+        "executionDate": "{{ execution().started_at }}",
+        "messageFormat": "slack_format",
+        "appendToThread": false,
+        "replyBroadcast": false,
+        "selectedRequestType": 0,
+        "attachmentToggleValue": "none",
+        "channel": "<YOUR_SLACK_CHANNEL_ID>",
+        "message": ":bar_chart: *Weekly in-product feedback digest*: {{ result('fetch_feedback').records | length }} entries in the last 7 days\n\n{{ result('summarize').text }}\n"
+      }
+    }
+  }
+}
