@@ -26,5 +26,6 @@ Solutions that contain a workflow but live in another folder, because their prim
 - [Send Cost Events to Tenant Workflow](../cost-intelligence-blueprints/send-cost-events-to-tenant-workflow/) — Cost Intelligence Blueprint + Workflow
 - [Set Quotas with Workflow](../cost-intelligence-blueprints/set-quotas-with-workflow/) — Cost Intelligence Blueprint + Workflow
 - [CI/CD Pipeline Observability](../observability-blueprints/ci-cd-pipeline/) — Observability Blueprint + Workflow (Azure DevOps, GitLab, Jenkins variants)
+- [In-Product Feedback with Session Replay](../dashboards/in-product-feedback/) — Dashboard + Workflow
 
 *(See [STANDARDS.md §6](../STANDARDS.md#6-hybrid-solutions--cross-linking) for how cross-linking works.)*
