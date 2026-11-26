@@ -90,7 +90,7 @@ The workflow runs without changes except `emails.to`. These inputs change its be
 
 | Input | Default | What it does |
 |------------------|--------|------------------------------------------|
-| `maxMetrics` | 10,000 | The number of metrics to analyse: the largest ones by data points. 10,000 is the recommended maximum. Don't set a higher value. |
+| `maxMetrics` | 10,000 | The number of metrics to analyse: the largest ones by data points. 10,000 is the default and the recommended maximum. Don't set a higher value. The workflow accepts 100 to 20,000, and replaces a value outside that range with the nearest limit. |
 | `historyDays` | 30 | The number of days of executed queries that count as use of a metric: 30, 60, or 90. Any other value is replaced by 30. A longer window is more careful but makes the run longer. On a tenant with more than 5,000 metrics, we don't recommend going above 30, because a longer window can make the workflow fail. |
 
 ## Use the results

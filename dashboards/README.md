@@ -22,6 +22,6 @@ Follow the [repository standards](../STANDARDS.md) and the [quality bar](../CONT
 
 Solutions that contain a dashboard but live in another folder (because their primary artifact is a notebook or launchpad). The link points to each solution's real home.
 
-- _None yet._
+- [Optimize metrics ingest cost](../workflows/optimize-metrics-ingest-cost/) — Workflow + Dashboard
 
 *(See [STANDARDS.md §6](../STANDARDS.md#6-hybrid-solutions--cross-linking) for how cross-linking works.)*
