@@ -35,7 +35,7 @@ guide: |-
      - Run the workflow: `app-engine:functions:run`, `automation:workflows:run`
 
      What a missing permission does: the first task checks every permission above except `email:emails:send` and `davis-copilot:conversations:execute`, which cannot be tested without sending an email or running the AI step. If one is missing, the run fails with an error that lists the missing permissions, and an email with the same text is sent (the error is also in the Workflows app, on the failed `check_permissions` task); nothing is analysed. Without `email:emails:send` no email can be sent at all, so look at the run in the Workflows app. Without the AI permission the report is still sent, with a template summary instead of the AI text. For any other missing permission, the step that needs it fails and the run stops.
-  4. Test with a manual run by clicking the `Run` button. A run takes about 5 minutes on a tenant with 1,200 metrics (a larger tenant takes longer) and costs about $0.33 to $0.43; the Davis AI summary is about $0.30 of it. The workflow reads every artifact or fails: it never reports from a partial read.
+  4. Test with a manual run by clicking the `Run` button. A run takes about 5 minutes on a tenant with 1,200 metrics (a larger tenant takes longer) and costs about $0.33 to $0.43; the Davis AI summary is about $0.30 of it. The workflow reads every artifact. A slice that cannot be read is read again in smaller pieces, and a notebook that cannot be read, also when read alone, is skipped and named in an italic note of the report: a metric that only that notebook uses can then look unused, so check the notebook before you drop a metric.
   5. If everything works as expected, open the dashboard that the email links to.
 
   # Use the results
@@ -1706,7 +1706,14 @@ tasks:
         export default async function () {
           const t0 = Date.now();
           const ex = await actionExecution();
-          const slice = Number(ex.loopItem.slice);
+          // a normal slice is a number. A slice that failed and is read again (the step plan_rescue) is an object: {slice, mode: "notebook" (one notebook: id and name given)
+          // or "rest" (everything of the slice except its notebooks)}. A notebook that cannot be read then fails alone instead of failing the whole slice.
+          const item = ex.loopItem.slice;
+          const part = item !== null && typeof item === "object" ? item : null;
+          const slice = Number(part ? part.slice : item);
+          const mode = part ? str(part.mode) : "";
+          const onlyId = part ? str(part.id) : "";
+          if (onlyId && part.name) NAMES.set(onlyId, str(part.name));
           const attempt = Number(ex.attempt) || 0;
           if (attempt > 0) {
             // the log of a failed attempt is lost with it, so the retry says why it is running
@@ -1718,18 +1725,20 @@ tasks:
           // with the most to read does not also carry them
           const isClassicSlice = plan.classicSlice === slice;
           const mine = (ids) => (slice < N ? ids.filter((id) => sliceOf(id, N) === slice) : []);
+          const mineDocs = (ids) => (mode === "notebook" ? [] : mine(ids)); // dashboards and workflows: not in the one-notebook mode
+          const mineNotebooks = (ids) => (mode === "notebook" ? [onlyId] : mode === "rest" ? [] : mine(ids));
 
           const [fieldRecs, dashIds, noteIds, selected] = await Promise.all([
             dqlAll("fieldsSnapshot metrics\n| fields field", 200000, "The list of the dimension names (fieldsSnapshot metrics)"),
-            listDocuments("dashboard"),
-            listDocuments("notebook"),
+            mode === "notebook" ? [] : listDocuments("dashboard"),
+            mode ? [] : listDocuments("notebook"),
             result("select_metrics"), // the metrics that are analysed: the largest by data points (the same list for every step)
           ]);
           const wfIds = plan.workflowIds;
           // the SLO pages: page p belongs to slice (p - 1) mod N; the detectors: one range of creation time per slice (a small number: slice 0 reads all)
           const sloPages = [];
-          if (slice < N) for (let p = slice + 1; p <= plan.sloPages; p += N) sloPages.push(p);
-          const detectorRange = slice >= N ? null : plan.detectorRanges.length ? plan.detectorRanges[slice] ?? null : slice === 0 ? { from: null, to: null } : null;
+          if (slice < N && mode !== "notebook") for (let p = slice + 1; p <= plan.sloPages; p += N) sloPages.push(p);
+          const detectorRange = slice >= N || mode === "notebook" ? null : plan.detectorRanges.length ? plan.detectorRanges[slice] ?? null : slice === 0 ? { from: null, to: null } : null;
           const billableKeys = new Set(arr(selected && selected.keys).map(str).filter(Boolean));
           const dimFields = new Set(fieldRecs.map((r) => str(r.field)).filter(Boolean));
           if (!billableKeys.size || !dimFields.size) throw new Error(`lookup returned nothing (${billableKeys.size} keys, ${dimFields.size} field names)`);
@@ -1737,11 +1746,11 @@ tasks:
 
           const read = { dashboards: 0, notebooks: 0, workflows: 0, slos: 0, classicSlos: 0, anomalyDetectors: 0 };
           const jobs = [
-            ["dashboards", () => readDocuments("dashboard", mine(dashIds), attempt > 0 ? 1 : CONCURRENCY)],
-            ["notebooks", () => readDocuments("notebook", mine(noteIds), attempt > 0 ? 1 : 2)], // two at a time: a notebook with cached results can be tens of MB, and the task has 256 MB
-            ["workflows", () => readWorkflows(mine(wfIds))],
+            ["dashboards", () => readDocuments("dashboard", mineDocs(dashIds), attempt > 0 ? 1 : CONCURRENCY)],
+            ["notebooks", () => readDocuments("notebook", mineNotebooks(noteIds), attempt > 0 ? 1 : 2)], // two at a time: a notebook with cached results can be tens of MB, and the task has 256 MB
+            ["workflows", () => readWorkflows(mineDocs(wfIds))],
             ["slos", () => readSloPages(sloPages)],
-            ["classicSlos", () => (isClassicSlice && plan.classicSlos > 0 ? readClassicSlos() : 0)],
+            ["classicSlos", () => (isClassicSlice && plan.classicSlos > 0 && mode !== "notebook" ? readClassicSlos() : 0)],
             ["anomalyDetectors", () => (detectorRange ? readDetectors(detectorRange) : 0)],
           ];
           // every reader is awaited and every failure is reported: the first failure no longer hides the others
@@ -1803,9 +1812,858 @@ tasks:
               addTo(scope, `${token}\u0000${r.kind}\u0000all-series`, r.id);
             }
           }
-          console.log(`slice ${slice} of ${N}, attempt ${attempt + 1}: ${read.dashboards} dashboards, ${read.notebooks} notebooks, ${read.workflows} workflows, ${read.slos} SLOs, ${read.classicSlos} classic SLOs and ${read.anomalyDetectors} anomaly detectors read in ${Math.round((Date.now() - t0) / 100) / 10} s` + (largeDocuments.length ? `. Large documents (read as text): ${largeDocuments.join("; ")}` : "") + `. Memory held by documents at most: ${Math.round(held.peak / 1e5) / 10} MB` + (unparsed.length ? `. ${unparsed.length} document(s) could not be parsed and were read as plain text (see the UNPARSED lines)` : ""));
+          console.log(`slice ${slice} of ${N}${mode ? ` (read again, ${mode === "notebook" ? "notebook " + onlyId : "all but the notebooks"})` : ""}, attempt ${attempt + 1}: ${read.dashboards} dashboards, ${read.notebooks} notebooks, ${read.workflows} workflows, ${read.slos} SLOs, ${read.classicSlos} classic SLOs and ${read.anomalyDetectors} anomaly detectors read in ${Math.round((Date.now() - t0) / 100) / 10} s` + (largeDocuments.length ? `. Large documents (read as text): ${largeDocuments.join("; ")}` : "") + `. Memory held by documents at most: ${Math.round(held.peak / 1e5) / 10} MB` + (unparsed.length ? `. ${unparsed.length} document(s) could not be parsed and were read as plain text (see the UNPARSED lines)` : ""));
           return {
             slice,
+            mode: mode || undefined,
+            docId: onlyId || undefined, // the notebook of a one-notebook read: the step classify tells a notebook that did not come back from the ones that did
+            sliceCount: N,
+            read,
+            queryStrings: rows.length,
+            skipped,
+            unparsed: unparsed.slice(0, 50),
+            unparsedCount: unparsed.length,
+            memoryPeakChars: held.peak,
+            entries: { used: used.size, scope: scope.size, dims: dimUse.size },
+            packed: await pack({
+              used: [...used].map(([k, ids]) => [...k.split("\u0000"), ids.size]),
+              scope: [...scope].map(([k, ids]) => [...k.split("\u0000"), ids.size]),
+              dims: [...dimUse].map(([k, ids]) => [...k.split("\u0000"), ids.size]),
+            }),
+            seconds: Math.round((Date.now() - t0) / 100) / 10,
+          };
+        }
+
+  plan_rescue:
+    name: plan_rescue
+    position:
+      x: -1
+      y: 3
+    description: If slices of read_artifacts failed (usually a task that ran out of memory because of a very large document), list them and their notebooks, so that they are read again in smaller pieces; empty if every slice was read
+    action: dynatrace.automations:run-javascript
+    conditions:
+      states:
+        read_artifacts: ANY
+    predecessors:
+      - read_artifacts
+    input:
+      script: |
+        import { documentsClient } from "@dynatrace-sdk/client-document";
+        import { result } from "@dynatrace-sdk/automation-utils";
+
+        // If a slice of read_artifacts failed (its iteration ended in error, usually a task that ran out of memory because of a very large document), that slice is read
+        // again by the step rescue_one in smaller pieces: every notebook of the slice on its own, and everything else of the slice in one piece. A notebook that cannot be
+        // read fails alone; the step classify lists it as skipped and the report says so. Nothing is skipped for its size: only a notebook that really fails.
+        // If every slice was read, the lists are empty, rescue_one has nothing to do, and the next step runs as before.
+        const MAX_FAILED_SLICES = 5; // more than this: the problem is not a document, the run stops (a notebook per iteration for many slices would be too much)
+
+        function sliceOf(id, n) {
+          let h = 0x811c9dc5;
+          for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+          return h % n;
+        }
+
+        export default async function () {
+          const plan = await result("plan");
+          const all = await result("read_artifacts");
+          const have = new Set((Array.isArray(all) ? all : []).filter((r) => r && typeof r.slice === "number").map((r) => r.slice));
+          const failed = plan.slices.filter((s) => !have.has(s));
+          if (!failed.length) return { failed: [], items: [], notebooks: [] };
+          if (failed.length > MAX_FAILED_SLICES) {
+            throw new Error(`${failed.length} of the ${plan.slices.length} slices of the artifact reading failed (slices ${failed.join(", ")}), more than the ${MAX_FAILED_SLICES} that can be read again in smaller pieces. Nothing was analysed. Open the log of the step read_artifacts to see why.`);
+          }
+          const N = plan.sliceCount;
+          const notebooks = [];
+          let pageKey;
+          do {
+            const page = await documentsClient.listDocuments({ filter: "type == 'notebook'", pageSize: 1000, adminAccess: true, ...(pageKey ? { pageKey } : {}) });
+            for (const d of page.documents) {
+              const s = sliceOf(d.id, N);
+              if (failed.includes(s)) notebooks.push({ slice: s, id: d.id, name: typeof d.name === "string" ? d.name : "" });
+            }
+            pageKey = page.nextPageKey;
+          } while (pageKey);
+          const items = [...failed.map((s) => ({ slice: s, mode: "rest" })), ...notebooks.map((nb) => ({ slice: nb.slice, mode: "notebook", id: nb.id, name: nb.name }))];
+          console.log(`read_artifacts: ${failed.length} slice(s) failed (${failed.join(", ")}). They are read again in ${items.length} pieces: ${notebooks.length} notebooks one by one and the rest of each slice. A notebook that cannot be read is skipped and named in the report.`);
+          return { failed, items, notebooks };
+        }
+
+  rescue_one:
+    name: rescue_one
+    position:
+      x: -1
+      y: 4
+    description: Reads a failed slice again in pieces, one notebook per iteration and the rest of the slice in one piece; a notebook that cannot be read fails alone and is reported as skipped (nothing happens if no slice failed)
+    action: dynatrace.automations:run-javascript
+    withItems: slice in {{ result("plan_rescue")["items"] }}
+    concurrency: 4
+    retry:
+      count: 1
+      delay: 5
+      failedLoopIterationsOnly: true
+    conditions:
+      states:
+        plan_rescue: OK
+    predecessors:
+      - plan_rescue
+    input:
+      script: |
+        import { documentsClient } from "@dynatrace-sdk/client-document";
+        import { workflowsClient } from "@dynatrace-sdk/client-automation";
+        import { serviceLevelObjectivesClient } from "@dynatrace-sdk/client-service-level-objectives";
+        import { metricsClient, settingsObjectsClient, extensions_2_0Client as extensionsClient, serviceLevelObjectivesClient as classicSloClient } from "@dynatrace-sdk/client-classic-environment-v2";
+        import { queryExecutionClient } from "@dynatrace-sdk/client-query";
+        import { actionExecution, result } from "@dynatrace-sdk/automation-utils";
+
+        const METRIC = "custom.metrics_usage.artifacts";
+        const SCOPE_METRIC = "custom.metrics_usage.artifact_scope";
+        const DIM_METRIC = "custom.metrics_usage.artifact_dimensions";
+        const SERIES_METRIC = "custom.metrics_usage.series";
+        const UNUSED_METRIC = "custom.metrics_usage.unused_dimensions";
+        const WINDOW_DAYS = 30; // executed-query window used to decide which dimensions are used (the dashboard default)
+        const SERIES_CAP = 50000; // a metric with more series in the last hour is skipped: its sample would not give a valid ratio
+        const SERIES_CONCURRENCY = 8;
+        const SERIES_BATCH = 10;
+        const SLICE_SIZE = 500; // dashboards and workflows per slice (final51; 1,500 before): about 0.03 s each. A slice of the largest customer tenant read about 560 dashboards, 400 notebooks, 520 workflows, 4,000 SLOs and 1,172 detectors in 70-87 s of the 100 s it may take, and some slices ran out of memory: smaller slices leave room
+        const NOTEBOOKS_PER_SLICE = 100; // notebooks per slice (final51; 400 before): two at a time, about 0.1 s each (a slice reads dashboards and notebooks at the same time); a notebook with cached results can be tens of MB
+        const CLASSIC_SLO_PAGE = 5000; // classic SLOs are paged by cursor only (up to 10,000 a page); slice 0 reads them all
+        const MAX_CLASSIC_SLOS = 40000; // slice 0 reads them one page after the other: this many is a few dozen seconds
+        const SLO_PAGE_SIZE = 500; // the largest page the SLO API returns
+        const SLO_PAGES_PER_SLICE = 3; // 1,500 platform SLOs per slice (final51; 5,000 before; a page is one call of about 500 KB)
+        const DETECTORS_PER_SLICE = 1500; // anomaly detectors per slice (final51; 5,000 before)
+        const PLAN_STOP_MS = 90000; // the plan has to finish its listings within this
+        const DETECTOR_SCHEMA = "builtin:davis.anomaly-detectors";
+        const MAX_EXTENSIONS = 300; // installed extensions one run reads: the plan refuses a tenant with more (the largest customer tenant seen has 234)
+        const EXTENSIONS_PER_SLICE = 100; // installed extensions per slice of the extension reading: about 100 packages in 20 to 40 s, three at a time
+        const MAX_SLICES = 120; // slices of the artifact reading (final51; 40 before). The packed counts of a slice are about 30-60 KB: 120 slices are about 7 MB, and the combined results of a loop passed at 36 MB (a loop of 200 iterations ran on the development tenant)
+        const HISTORY_DAYS = 90; // the longest executed-query history that is counted (the input historyDays chooses 30, 60 or 90 days; the dashboard offers the windows that were counted)
+        const HISTORY_DAYS_DEFAULT = 30; // used when the input historyDays is missing or not 30, 60 or 90
+        const HISTORY_EVENTS_PER_SLICE = 15000000; // executed-query events one slice of the history reads: about 1 day of a tenant with 15 million a day. The database hands over the words of the distinct queries (measured on that tenant: 2 days = 27,818 distinct queries = 53 MB, 17 s), the matching is done in the task: a slice of this size is about 27 MB, a task holds it in memory (256 MB)
+        const HISTORY_TEXTS_PER_SLICE = 8000; // different executed-query texts one slice may read: the database hands over the words of each (about 1.9 KB each on the largest tenant, so about 15 MB; a task of 256 MB holds about 20 MB of words, see TOKENS_MAX_BYTES)
+        const MAX_HISTORY_SLICES = 200; // the packed counts of a slice are about 60 KB, so the results of all slices stay far below the 30 MB the next step may receive
+        const DEFAULT_HISTORY_SLICES = 90; // used when the plan cannot estimate how large the history is (a day each: the largest tenant seen has about 15 million events a day)
+        const HISTORY_SLICE_BYTES = 2000000; // what one history slice may hand over, packed. The result of one iteration of a loop is refused above about 6.5 MB (6,000 KB passed, 7,000 KB failed on 2026-11-23). The largest customer tenant: slices of its recent days are 60-110 KB, slices of 25 Oct to 4 Nov 1.2-1.3 MB (many large queries that each name many metrics and dimensions)
+        const HISTORY_TOTAL_BYTES = 34000000; // what all history slices together may hand over: the combined results of a loop passed at 36 MB (not tried beyond). The merge step checks the sum; a share per slice (total divided by the number of slices) was too strict, because the size of the slices differs a lot // metric keys read with one query
+        const STARTED = Date.now();
+        const HISTORY_TIMEOUT_S = 90; // the 30-day query-history analysis must finish within this
+        // A JavaScript action is stopped by the platform at 120 s (the task timeout setting does not raise it), so the task stops itself earlier.
+        const ARTIFACT_STOP_MS = 100000; // no artifact is read after this (a slice is sized to take far less)
+        const SERIES_STOP_MS = 100000; // no metric is queried for the series estimate after this
+        const BILLABLE_FILTER = `(startswith(grail.metric.key, "dt.service.")
+          or startswith(grail.metric.key, "dt.cloud.aws")
+          or startswith(grail.metric.key, "dt.cloud.azure")
+          or startswith(grail.metric.key, "dt.osservice.")
+          or NOT startswith(grail.metric.key, "dt."))
+        and not in(grail.metric.key,
+          "dt.cloud.aws.az.running",
+          "dt.cloud.azure.region.vms.initializing",
+          "dt.cloud.azure.region.vms.running",
+          "dt.cloud.azure.region.vms.stopped",
+          "dt.cloud.azure.vm_scale_set.vms.initializing",
+          "dt.cloud.azure.vm_scale_set.vms.running",
+          "dt.cloud.azure.vm_scale_set.vms.stopped")
+        and isnull(grail.monitoring_source)
+        and grail.bucket.name!="dt_system_metrics"
+        and grail.metric.key!="..."`;
+        const CONCURRENCY = 4; // concurrent downloads in a slice: many very large documents in memory at once ran a slice out of memory at 16
+        const OWN = "moprs_series";
+        const MAX_TOKEN_LENGTH = 200; // dimension values are limited in length
+        const MAX_LINES = 200000; // safety cap: refuse to ingest an unexpectedly large snapshot (10,000 analysed metrics: about 6 lines each, one more each as a marker, and a few numbers)
+
+        // ---------------------------------------------------------------- helpers
+        const obj = (v) => (v !== null && typeof v === "object" && !Array.isArray(v) ? v : {});
+        const arr = (v) => (Array.isArray(v) ? v : []);
+        const str = (v) => (typeof v === "string" ? v : "");
+        const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const KEYCH = "[A-Za-z0-9_.\\-]";
+        /** Whole-token matcher: `a.b` must not match inside `a.b.c`. */
+        const tok = (s) => new RegExp(`(?<!${KEYCH})${escapeRegex(s)}(?!${KEYCH})`);
+
+        /** A refused request (HTTP 401/403, or a message that says so) is a permission problem: it is not retried. */
+        const permanent = (e) => {
+          const status = Number(e?.response?.status ?? e?.status ?? e?.statusCode);
+          return status === 401 || status === 403 || /forbidden|insufficient permission|not authori[sz]ed|permission denied|missing required scope/i.test(String(e && e.message ? e.message : e));
+        };
+
+        async function retry(fn, attempts = 5) {
+          let last;
+          for (let n = 0; n < attempts; n++) {
+            try {
+              return await fn();
+            } catch (e) {
+              last = e;
+              if (permanent(e)) throw e;
+              await new Promise((r) => setTimeout(r, 500 * (n + 1)));
+            }
+          }
+          throw last;
+        }
+
+        async function dql(query, max = 20000, fetchTimeout = 300, attempts = 5) {
+          return retry(async () => {
+            const start = await queryExecutionClient.queryExecute({ body: { query, maxResultRecords: max, maxResultBytes: 200000000, fetchTimeoutSeconds: fetchTimeout, enablePreview: false } });
+            let state = start.state;
+            let result = start.result;
+            const token = start.requestToken;
+            while (state !== "SUCCEEDED") {
+              if (state === "FAILED" || state === "CANCELLED" || state === "RESULT_GONE") throw new Error(`query ${state}`);
+              if (!token) throw new Error("query returned no request token");
+              const poll = await queryExecutionClient.queryPoll({ requestToken: token, requestTimeoutMilliseconds: 30000 });
+              state = poll.state;
+              result = poll.result;
+            }
+            return arr(result?.records).filter((r) => r !== null);
+          }, attempts);
+        }
+
+        /** The 30-day query-history analysis: a timeout is not retried (it would only be killed by the platform), a quick failure is retried once. */
+        async function dqlHistory(query, max = 20000) {
+          let last;
+          for (let n = 0; n < 2; n++) {
+            try {
+              return await dql(query, max, HISTORY_TIMEOUT_S, 1);
+            } catch (e) {
+              last = e;
+              if (Date.now() - STARTED > 30000) break;
+            }
+          }
+          throw new Error(`the 30-day query-history analysis did not finish within ${HISTORY_TIMEOUT_S} s (${String(last && last.message ? last.message : last)}): too many executed queries for one run`);
+        }
+
+        /** A list that has to be complete: a result that reaches its limit may be cut off, which would leave items out silently, so it stops the run instead. */
+        async function dqlAll(query, max, what) {
+          const recs = await dql(query, max);
+          if (recs.length >= max) throw new Error(`${what}: the result reached its limit of ${max} rows and may be cut off, so nothing was analysed. Send this message to the workflow owner.`);
+          return recs;
+        }
+
+        async function pmap(items, limit, fn) {
+          const out = new Array(items.length);
+          let next = 0;
+          const worker = async () => {
+            while (next < items.length) {
+              const i = next++;
+              out[i] = await fn(items[i], i);
+            }
+          };
+          await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+          return out;
+        }
+
+        /** Queries that analyse ingest cost or shape instead of consuming a metric's data; they count as no usage of any token. */
+        function isAnalysisQuery(q) {
+          return (
+            q.includes("dt.sfm.metrics.ingest.datapoints") ||
+            q.includes(OWN) ||
+            q.includes("timeseries val=count(") ||
+            (q.includes("QUERY_EXECUTION_EVENT") && q.includes("query_string")) ||
+            /countDistinct\(\s*array\(/.test(q) ||
+            /\|\s*limit\s+0\s*$/.test(q)
+          );
+        }
+        /** `metrics | filter metric.key == "<key>"` (optionally `| limit N`) is dimension discovery for that one key only. */
+        const DISCOVERY = /^\s*metrics\s*\|\s*filter\s+metric\.key\s*==\s*"([^"]+)"\s*(\|\s*limit\s+\d+\s*)?$/;
+
+
+        // ---------------------------------------------------------------- hand-over between tasks
+        // The result of a task is limited to about 5 MB, and the results of all slices reach one task. A slice therefore packs its counts (gzip, then
+        // base64 text). Gzip is lossless (and checks its own contents with a CRC32 when it is unpacked); the length of the unpacked text and a checksum of the packed
+        // bytes are checked on arrival, so damaged data stops the run. The checksum is over the PACKED bytes (final52): over the unpacked text it took 10 to 11 s for a
+        // slice of 16 million characters in the task runtime (the largest customer tenant), more than the whole unpacking (2 s), and the merge of 21 such slices ran
+        // out of its 120 seconds.
+        const fnvBytes = (b) => {
+          let h = 0x811c9dc5;
+          for (let i = 0; i < b.length; i++) h = Math.imul(h ^ b[i], 16777619) >>> 0;
+          return h.toString(16);
+        };
+        async function gzipText(text) {
+          const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+          return new Uint8Array(await new Response(stream).arrayBuffer());
+        }
+        async function gunzipBytes(bytes) {
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+          return await new Response(stream).text();
+        }
+        function toBase64(bytes) {
+          let s = "";
+          for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+          return btoa(s);
+        }
+        function fromBase64(b64) {
+          const s = atob(b64);
+          const out = new Uint8Array(s.length);
+          for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+          return out;
+        }
+        async function pack(value) {
+          const text = JSON.stringify(value);
+          const bytes = await gzipText(text);
+          return { format: "gzip+base64", length: text.length, checksum: fnvBytes(bytes), data: toBase64(bytes) };
+        }
+        async function unpack(p) {
+          if (!p || p.format !== "gzip+base64") throw new Error("a slice handed over its counts in an unknown format");
+          let text;
+          try {
+            const bytes = fromBase64(p.data);
+            if (fnvBytes(bytes) !== p.checksum) throw new Error("the checksum of the packed bytes differs");
+            text = await gunzipBytes(bytes);
+          } catch (e) {
+            throw new Error(`the counts handed over by a slice are damaged (they cannot be unpacked${e && e.message ? `: ${e.message}` : ""}); nothing was analysed`);
+          }
+          if (text.length !== p.length) throw new Error("the counts handed over by a slice are damaged (length or checksum differ); nothing was analysed");
+          return JSON.parse(text);
+        }
+
+        /** Every artifact belongs to exactly one slice, whatever the order of the list. */
+        function sliceOf(id, n) {
+          let h = 0x811c9dc5;
+          for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+          return h % n;
+        }
+        /** The classic SLO API (metric expression SLOs). It does not exist on every environment: a 404 "not available" means there are none to read. */
+        const errorText = (e) => String(e && e.message ? e.message : e);
+        /** The same parameters in every classic SLO call, so the count and the read agree: no evaluation (it limits the page to 25), enabled and disabled SLOs, global SLOs included. */
+        const CLASSIC_SLO_PARAMS = { evaluate: "false", enabledSlos: "all", showGlobalSlos: true };
+        const classicUnavailable = (e) => Number(e?.response?.status ?? e?.status ?? e?.statusCode) === 404 || /not available for this environment/i.test(errorText(e));
+        async function classicSloCall(args) {
+          let last;
+          for (let attempt = 0; attempt < 4; attempt++) {
+            try {
+              return await classicSloClient.getSlo(args);
+            } catch (e) {
+              if (classicUnavailable(e)) return null; // no classic SLOs on this environment
+              last = e;
+              if (Number(e?.response?.status ?? e?.status ?? e?.statusCode) === 403 || /missing required scope|insufficient permission/i.test(errorText(e))) {
+                throw new Error(`the classic SLO API refused the request (${errorText(e)}): the workflow's user needs the permission environment-api:slo:read. Without it the metric expressions of classic SLOs cannot be read, and metrics used only there would be reported as unused. Nothing was analysed.`);
+              }
+              await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+            }
+          }
+          throw last;
+        }
+        /** How many classic SLOs there are (0 if the API is not available on this environment). */
+        async function classicSloTotal() {
+          const r = await classicSloCall({ pageSize: 1, ...CLASSIC_SLO_PARAMS });
+          return r ? Number(r.totalCount) || 0 : 0;
+        }
+        /** A list that is a little shorter than its total can be churn (artifacts deleted while paging); more than that is a gap. */
+        function checkList(what, got, total) {
+          if (typeof total === "number" && got < total - Math.max(5, Math.floor(total / 100))) throw new Error(`incomplete ${what} list: read ${got} of ${total}`);
+        }
+
+        // ---------------------------------------------------------------- artifact lists (admin access: every user's artifacts, private ones included)
+        const NAMES = new Map(); // document id -> name, for the log and the messages
+        async function listDocuments(type) {
+          const out = [];
+          let pageKey;
+          let total;
+          do {
+            // the filter, the page size and the admin flag have to be repeated with the page key, otherwise the next page is not the same list
+            const page = await retry(() => documentsClient.listDocuments({ filter: `type == '${type}'`, pageSize: 1000, adminAccess: true, ...(pageKey ? { pageKey } : {}) }));
+            total = page.totalCount;
+            for (const d of page.documents) {
+              out.push(d.id);
+              if (typeof d.name === "string") NAMES.set(d.id, d.name);
+            }
+            pageKey = page.nextPageKey;
+          } while (pageKey);
+          checkList(type, out.length, total);
+          return out;
+        }
+
+
+        const rows = [];
+        const add = (kind, id, query) => {
+          if (typeof query === "string" && query.trim()) rows.push({ kind, id, query });
+        };
+        // ---------------------------------------------------------------- very large documents
+        // A notebook with cached results can be tens of MB; parsing it into objects runs the task out of memory. Above BIG_DOCUMENT characters only the
+        // fields that hold queries are read straight from the text (the rest is skipped without being built), with the same result as parsing it.
+        const BIG_DOCUMENT = 1000000; // above this the text is not parsed: the object tree of a parsed document is several times the size of its text
+        const wsAt = (t, i) => {
+          while (i < t.length) {
+            const c = t.charCodeAt(i);
+            if (c === 32 || c === 10 || c === 13 || c === 9) i++;
+            else break;
+          }
+          return i;
+        };
+        function skipString(t, i) {
+          i++;
+          while (i < t.length) {
+            const c = t.charCodeAt(i);
+            if (c === 92) i += 2;
+            else if (c === 34) return i + 1;
+            else i++;
+          }
+          throw new Error("unterminated string in document");
+        }
+        /** Index just after the JSON value that starts at i. */
+        function skipValue(t, i) {
+          i = wsAt(t, i);
+          const c = t.charCodeAt(i);
+          if (c === 34) return skipString(t, i);
+          if (c === 123 || c === 91) {
+            let depth = 0;
+            while (i < t.length) {
+              const ch = t.charCodeAt(i);
+              if (ch === 34) {
+                i = skipString(t, i);
+                continue;
+              }
+              if (ch === 123 || ch === 91) depth++;
+              else if (ch === 125 || ch === 93) {
+                depth--;
+                if (depth === 0) return i + 1;
+              }
+              i++;
+            }
+            throw new Error("unterminated value in document");
+          }
+          while (i < t.length && ",}] \n\r\t".indexOf(t[i]) < 0) i++;
+          return i;
+        }
+        const valueAt = (t, i) => JSON.parse(t.slice(i, skipValue(t, i)));
+        /** fn(key, valueStart) returns the index after the value if it read it, or undefined to have it skipped. Returns the index after the object. */
+        function eachEntry(t, i, fn) {
+          i = wsAt(t, i);
+          if (t[i] !== "{") return skipValue(t, i);
+          i = wsAt(t, i + 1);
+          if (t[i] === "}") return i + 1;
+          for (;;) {
+            i = wsAt(t, i);
+            const kEnd = skipString(t, i);
+            const key = JSON.parse(t.slice(i, kEnd));
+            i = wsAt(t, wsAt(t, kEnd) + 1);
+            const read = fn(key, i);
+            i = wsAt(t, read === undefined ? skipValue(t, i) : read);
+            if (t[i] === ",") {
+              i++;
+              continue;
+            }
+            if (t[i] === "}") return i + 1;
+            throw new Error("malformed object in document");
+          }
+        }
+        /** fn(valueStart) for every element of an array; same contract. */
+        function eachItem(t, i, fn) {
+          i = wsAt(t, i);
+          if (t[i] !== "[") return skipValue(t, i);
+          i = wsAt(t, i + 1);
+          if (t[i] === "]") return i + 1;
+          for (;;) {
+            i = wsAt(t, i);
+            const read = fn(i);
+            i = wsAt(t, read === undefined ? skipValue(t, i) : read);
+            if (t[i] === ",") {
+              i++;
+              continue;
+            }
+            if (t[i] === "]") return i + 1;
+            throw new Error("malformed array in document");
+          }
+        }
+        /** The queries of a notebook (sections of type dql: state.input.value) read from its text. */
+        function scanNotebook(text, id, add) {
+          eachEntry(text, 0, (k, i) =>
+            k === "sections"
+              ? eachItem(text, i, (j) => {
+                  let type;
+                  let value;
+                  const end = eachEntry(text, j, (k2, p) => {
+                    if (k2 === "type") {
+                      const e = skipValue(text, p);
+                      type = JSON.parse(text.slice(p, e));
+                      return e;
+                    }
+                    if (k2 === "state") {
+                      return eachEntry(text, p, (k3, q) =>
+                        k3 === "input"
+                          ? eachEntry(text, q, (k4, r) => {
+                              if (k4 !== "value") return undefined;
+                              const e = skipValue(text, r);
+                              value = JSON.parse(text.slice(r, e));
+                              return e;
+                            })
+                          : undefined,
+                      );
+                    }
+                    return undefined;
+                  });
+                  if (type === "dql") add("notebook", id, value);
+                  return end;
+                })
+              : undefined,
+          );
+        }
+        /** The queries of a dashboard (data tiles: query; variables: input) read from its text. */
+        function scanDashboard(text, id, add) {
+          const tile = (j) => {
+            let type;
+            let query;
+            const end = eachEntry(text, j, (k2, p) => {
+              if (k2 === "type") {
+                const e = skipValue(text, p);
+                type = JSON.parse(text.slice(p, e));
+                return e;
+              }
+              if (k2 === "query") {
+                const e = skipValue(text, p);
+                query = JSON.parse(text.slice(p, e));
+                return e;
+              }
+              return undefined;
+            });
+            if (type === "data") add("dashboard", id, query);
+            return end;
+          };
+          eachEntry(text, 0, (k, i) => {
+            if (k === "tiles") {
+              const c = text[wsAt(text, i)];
+              return c === "[" ? eachItem(text, i, tile) : eachEntry(text, i, (_key, j) => tile(j));
+            }
+            if (k === "variables") {
+              return eachItem(text, i, (j) =>
+                eachEntry(text, j, (k2, p) => {
+                  if (k2 !== "input") return undefined;
+                  const e = skipValue(text, p);
+                  add("dashboard", id, JSON.parse(text.slice(p, e)));
+                  return e;
+                }),
+              );
+            }
+            return undefined;
+          });
+        }
+
+        // ---------------------------------------------------------------- artifacts (a partial read would make metrics look unused, so any gap throws)
+        const TOO_SLOW = "out of time: this slice is too large for 2 minutes";
+        const largeDocuments = []; // documents above BIG_DOCUMENT, read as text: listed in the log, so a later out-of-memory failure can be traced
+
+        /** The queries of one document are taken out as soon as it is downloaded, so no document is kept in memory. */
+        function extractDocument(type, id, content) {
+          if (type === "dashboard") {
+            const tiles = content.tiles;
+            const entries = Array.isArray(tiles) ? tiles.map((t, i) => [String(i), t]) : Object.entries(obj(tiles));
+            for (const [, t] of entries) if (obj(t).type === "data") add("dashboard", id, obj(t).query);
+            for (const v of arr(content.variables)) add("dashboard", id, obj(v).input);
+          } else {
+            for (const s of arr(content.sections)) {
+              const sec = obj(s);
+              if (sec.type === "dql") add("notebook", id, obj(obj(sec.state).input).value); // never the cached results
+            }
+          }
+        }
+
+        // A document that cannot be parsed (its text is empty, cut off or damaged) is not skipped and does not stop the run: its text is searched for the metric keys
+        // it names, as plain text. Every key found counts as used, in the scope "all series" (what the document does with the dimensions is not known, so it never
+        // leads to a saving from unused dimensions). Each such document is listed by id and name in the log and in the result of the slice.
+        let RAW_KEYS = new Set(); // the billable metric keys, set before the documents are read
+        const rawRows = []; // {kind, id, keys}: the keys that unparsable documents name
+        const unparsed = []; // {kind, id, name, chars, why, keys}
+        const nameOf = (id) => (NAMES.has(id) ? ` ("${NAMES.get(id)}")` : "");
+        function addRaw(kind, id, text) {
+          const keys = new Set();
+          const re = /[A-Za-z0-9_.\-]+/g;
+          let m;
+          while ((m = re.exec(text)) !== null) {
+            const t = m[0];
+            if (RAW_KEYS.has(t)) keys.add(t);
+            // in the text of a JSON document a line break is written as a backslash and the letter n: a key right behind it starts with that letter (the same for tab, carriage return and unicode escapes)
+            if (m.index > 0 && text.charCodeAt(m.index - 1) === 92) {
+              const esc = /^(?:[ntr]|u[0-9a-fA-F]{4})/.exec(t);
+              if (esc && RAW_KEYS.has(t.slice(esc[0].length))) keys.add(t.slice(esc[0].length));
+            }
+          }
+          if (keys.size) rawRows.push({ kind, id, keys: [...keys] });
+          return keys.size;
+        }
+
+        // The documents in memory at the same time are limited by their size, not only by their number. Their text stays in memory while their queries are taken out
+        // (a parsed document needs several times its text). A document is only known by its size once it is downloaded, so two rules follow what has been seen:
+        //  - a new download waits while the documents being processed hold MEMORY_BUDGET_CHARS characters,
+        //  - once a document above BIG_DOCUMENT has been seen, the documents of that kind are read one at a time (the very large ones are notebooks with cached results).
+        const MEMORY_BUDGET_CHARS = 12000000; // a document above this holds every other download back until it is processed
+        const held = { chars: 0, waiters: [], peak: 0 };
+        const kindGate = { dashboard: { active: 0, waiters: [], bigSeen: false }, notebook: { active: 0, waiters: [], bigSeen: false } };
+        const wake = (list) => {
+          for (const w of list.splice(0)) w();
+        };
+        async function enterKind(type, base) {
+          const g = kindGate[type];
+          while (g.active >= (g.bigSeen ? 1 : base)) await new Promise((r) => g.waiters.push(r));
+          g.active++;
+        }
+        function leaveKind(type) {
+          const g = kindGate[type];
+          g.active--;
+          wake(g.waiters);
+        }
+        async function waitForMemory() {
+          while (held.chars >= MEMORY_BUDGET_CHARS) await new Promise((r) => held.waiters.push(r));
+        }
+        function releaseMemory(chars) {
+          held.chars -= chars;
+          wake(held.waiters);
+        }
+
+        async function readOneDocument(type, id, base) {
+          await enterKind(type, base);
+          let chars = 0;
+          try {
+            if (Date.now() - STARTED > ARTIFACT_STOP_MS) throw new Error(TOO_SLOW);
+            await waitForMemory();
+            let text = await retry(async () => (await documentsClient.downloadDocumentContent({ id, adminAccess: true })).get("text"));
+            chars = text.length;
+            held.chars += chars;
+            if (held.chars > held.peak) held.peak = held.chars;
+            const big = chars > BIG_DOCUMENT;
+            if (big) {
+              kindGate[type].bigSeen = true;
+              largeDocuments.push(`${type} ${id}${nameOf(id)} ${Math.round(chars / 1e5) / 10} MB`);
+              console.log(`large document: ${type} ${id}${nameOf(id)}, ${Math.round(chars / 1e5) / 10} MB, read as text (memory held: ${Math.round(held.chars / 1e5) / 10} MB)`);
+            }
+            try {
+              if (chars === 0) throw new Error("the document has no content (the text is empty)"); // no trim() here: it can copy a document of tens of MB
+              if (big) (type === "dashboard" ? scanDashboard : scanNotebook)(text, id, add);
+              else extractDocument(type, id, obj(JSON.parse(text)));
+            } catch (e) {
+              const keys = addRaw(type, id, text);
+              const why = String(e && e.message ? e.message : e);
+              unparsed.push({ kind: type, id, name: NAMES.get(id) ?? "", chars, why, keys });
+              console.log(`UNPARSED ${type} ${id}${nameOf(id)}: ${chars} characters, ${why}. Read as plain text: ${keys} billable metric key${keys === 1 ? "" : "s"} found; they count as used.`);
+            }
+            text = null;
+            return { id, err: "", gone: false };
+          } catch (e) {
+            const err = String(e && e.message ? e.message : e);
+            return { id, err, gone: /not found/i.test(err) }; // gone: deleted after the list was read, nothing to count
+          } finally {
+            releaseMemory(chars);
+            leaveKind(type);
+          }
+        }
+
+        async function readDocuments(type, ids, concurrency = CONCURRENCY) {
+          const results = await pmap(ids, concurrency, (id) => readOneDocument(type, id, concurrency));
+          const bad = results.filter((d) => d.err && !d.gone);
+          if (bad.length) {
+            const lines = bad.slice(0, 5).map((d) => `- ${d.id}${nameOf(d.id)}: ${d.err}`);
+            throw new Error(`could not read ${bad.length} of ${ids.length} ${type}s:\n${lines.join("\n")}${bad.length > 5 ? `\n- and ${bad.length - 5} more` : ""}`);
+          }
+          return ids.length;
+        }
+
+        async function readWorkflows(list) {
+          const wfs = await pmap(list, CONCURRENCY, async (id) => {
+            try {
+              if (Date.now() - STARTED > ARTIFACT_STOP_MS) throw new Error(TOO_SLOW);
+              return await retry(() => workflowsClient.getWorkflow({ id, adminAccess: true }));
+            } catch (e) {
+              return /not found/i.test(String(e && e.message ? e.message : e)) ? "gone" : null;
+            }
+          });
+          wfs.splice(0, wfs.length, ...wfs.filter((w) => w !== "gone")); // deleted after the list was read
+          if (wfs.some((w) => w === null)) throw new Error(`could not read ${wfs.filter((w) => w === null).length} of ${list.length} workflows`);
+          for (const w of wfs) {
+            for (const t of Object.values(obj(w.tasks))) {
+              const task = obj(t);
+              const action = str(task.action);
+              const input = obj(task.input);
+              if (action.endsWith("execute-dql-query")) add("workflow", w.id, input.query);
+              else if (action.endsWith("run-javascript")) add("workflow", w.id, input.script);
+            }
+          }
+          return list.length;
+        }
+
+        // ---------------------------------------------------------------- SLOs and anomaly detectors
+        /** The platform SLOs of the given pages (1-indexed, 500 each). The pages are read 4 at a time. Returns how many SLOs were read. */
+        async function readSloPages(pages) {
+          const seen = new Set();
+          await pmap(pages, 4, async (p) => {
+            if (Date.now() - STARTED > ARTIFACT_STOP_MS) throw new Error(TOO_SLOW);
+            const page = obj(await retry(() => serviceLevelObjectivesClient.getSlos({ pageSize: SLO_PAGE_SIZE, page: p })));
+            for (const s of arr(page.slos)) {
+              const slo = obj(s);
+              const id = str(slo.id);
+              if (seen.has(id)) continue; // a page can overlap its neighbour if an SLO was created or deleted meanwhile
+              seen.add(id);
+              add("slo", id, obj(slo.customSli).indicator);
+            }
+          });
+          return seen.size;
+        }
+
+        /** All classic SLOs: the cursor is followed to the end. Their metric expressions name the metrics they use. Returns how many were read. */
+        async function readClassicSlos() {
+          const seen = new Set();
+          let withMetricField = 0; // SLOs that have at least one field holding a metric selector
+          let firstKeys = null;
+          let nextPageKey;
+          do {
+            if (Date.now() - STARTED > ARTIFACT_STOP_MS) throw new Error(TOO_SLOW);
+            // with a page key no other parameter may be sent
+            const page = obj(await classicSloCall(nextPageKey ? { nextPageKey } : { pageSize: CLASSIC_SLO_PAGE, ...CLASSIC_SLO_PARAMS }));
+            for (const s of arr(page.slo ?? page.slos)) {
+              const slo = obj(s);
+              const id = str(slo.id);
+              if (seen.has(id)) continue;
+              seen.add(id);
+              firstKeys ??= Object.keys(slo).join(",");
+              // the fields that hold metric selectors: the expression, and the deprecated numerator, denominator and rate. The metric keys the SLO
+              // produces (metricKey, errorBudgetMetricKey, ...) are outputs, and the filter is an entity selector: neither is a use of a metric.
+              const fields = [slo.metricExpression, slo.metricNumerator, slo.metricDenominator, slo.metricRate];
+              if (fields.some((f) => typeof f === "string" && f.trim())) withMetricField++;
+              for (const f of fields) add("slo", id, f);
+            }
+            nextPageKey = str(page.nextPageKey) || undefined;
+          } while (nextPageKey);
+          // if SLOs came back and none of them has a metric field, the response is not the format the docs describe: stop instead of reading nothing
+          if (seen.size > 0 && withMetricField === 0) {
+            throw new Error(`${seen.size} classic SLOs were returned, but none has a metricExpression, metricNumerator, metricDenominator or metricRate (fields of the first: ${firstKeys}). The response format is not the expected one, so their metrics cannot be read. Nothing was analysed.`);
+          }
+          console.log(`classic SLOs: ${seen.size} read, ${withMetricField} with a metric field; fields of the first: ${firstKeys}`);
+          return seen.size;
+        }
+
+        /** The anomaly detectors created inside the range {from, to} (null = open). A cursor is followed to the end of the range. */
+        async function readDetectors(range) {
+          const filter = [range.from !== null ? `created >= ${range.from}` : "", range.to !== null ? `created < ${range.to}` : ""].filter(Boolean).join(" and ");
+          let count = 0;
+          let nextPageKey;
+          do {
+            if (Date.now() - STARTED > ARTIFACT_STOP_MS) throw new Error(TOO_SLOW);
+            const page = await retry(() =>
+              settingsObjectsClient.getSettingsObjects(nextPageKey ? { nextPageKey } : { schemaIds: DETECTOR_SCHEMA, fields: "objectId,value,created", pageSize: 500, ...(filter ? { filter } : {}) }),
+            );
+            for (const o of arr(page.items)) {
+              count++;
+              for (const i of arr(obj(obj(o.value).analyzer).input)) {
+                const input = obj(i);
+                if (input.key === "query" || input.key === "query.expression") add("anomaly-detector", str(o.objectId), input.value);
+              }
+            }
+            nextPageKey = page.nextPageKey;
+          } while (nextPageKey);
+          return count;
+        }
+
+
+        export default async function () {
+          const t0 = Date.now();
+          const ex = await actionExecution();
+          // a normal slice is a number. A slice that failed and is read again (the step plan_rescue) is an object: {slice, mode: "notebook" (one notebook: id and name given)
+          // or "rest" (everything of the slice except its notebooks)}. A notebook that cannot be read then fails alone instead of failing the whole slice.
+          const item = ex.loopItem.slice;
+          const part = item !== null && typeof item === "object" ? item : null;
+          const slice = Number(part ? part.slice : item);
+          const mode = part ? str(part.mode) : "";
+          const onlyId = part ? str(part.id) : "";
+          if (onlyId && part.name) NAMES.set(onlyId, str(part.name));
+          const attempt = Number(ex.attempt) || 0;
+          if (attempt > 0) {
+            // the log of a failed attempt is lost with it, so the retry says why it is running
+            console.log(`RETRY: slice ${slice}, attempt ${attempt + 1}. The previous attempt of this slice failed and its log is lost with it. Running out of memory (the limit is 256 MB) is the usual reason, when very large documents were held in memory together; this attempt reads notebooks one at a time and fewer dashboards at a time.`);
+          }
+          const plan = await result("plan");
+          const N = plan.sliceCount;
+          // the slices 0 to N-1 share the documents, the SLO pages and the detectors; the classic SLOs are read by a slice of their own (index N), so that the slice
+          // with the most to read does not also carry them
+          const isClassicSlice = plan.classicSlice === slice;
+          const mine = (ids) => (slice < N ? ids.filter((id) => sliceOf(id, N) === slice) : []);
+          const mineDocs = (ids) => (mode === "notebook" ? [] : mine(ids)); // dashboards and workflows: not in the one-notebook mode
+          const mineNotebooks = (ids) => (mode === "notebook" ? [onlyId] : mode === "rest" ? [] : mine(ids));
+
+          const [fieldRecs, dashIds, noteIds, selected] = await Promise.all([
+            dqlAll("fieldsSnapshot metrics\n| fields field", 200000, "The list of the dimension names (fieldsSnapshot metrics)"),
+            mode === "notebook" ? [] : listDocuments("dashboard"),
+            mode ? [] : listDocuments("notebook"),
+            result("select_metrics"), // the metrics that are analysed: the largest by data points (the same list for every step)
+          ]);
+          const wfIds = plan.workflowIds;
+          // the SLO pages: page p belongs to slice (p - 1) mod N; the detectors: one range of creation time per slice (a small number: slice 0 reads all)
+          const sloPages = [];
+          if (slice < N && mode !== "notebook") for (let p = slice + 1; p <= plan.sloPages; p += N) sloPages.push(p);
+          const detectorRange = slice >= N || mode === "notebook" ? null : plan.detectorRanges.length ? plan.detectorRanges[slice] ?? null : slice === 0 ? { from: null, to: null } : null;
+          const billableKeys = new Set(arr(selected && selected.keys).map(str).filter(Boolean));
+          const dimFields = new Set(fieldRecs.map((r) => str(r.field)).filter(Boolean));
+          if (!billableKeys.size || !dimFields.size) throw new Error(`lookup returned nothing (${billableKeys.size} keys, ${dimFields.size} field names)`);
+          RAW_KEYS = billableKeys;
+
+          const read = { dashboards: 0, notebooks: 0, workflows: 0, slos: 0, classicSlos: 0, anomalyDetectors: 0 };
+          const jobs = [
+            ["dashboards", () => readDocuments("dashboard", mineDocs(dashIds), attempt > 0 ? 1 : CONCURRENCY)],
+            ["notebooks", () => readDocuments("notebook", mineNotebooks(noteIds), attempt > 0 ? 1 : 2)], // two at a time: a notebook with cached results can be tens of MB, and the task has 256 MB
+            ["workflows", () => readWorkflows(mineDocs(wfIds))],
+            ["slos", () => readSloPages(sloPages)],
+            ["classicSlos", () => (isClassicSlice && plan.classicSlos > 0 && mode !== "notebook" ? readClassicSlos() : 0)],
+            ["anomalyDetectors", () => (detectorRange ? readDetectors(detectorRange) : 0)],
+          ];
+          // every reader is awaited and every failure is reported: the first failure no longer hides the others
+          // a retry (the first attempt ran out of memory or time) is the careful one: one document at a time, and the notebooks only after the dashboards are read, so that
+          // no two large documents are in memory together; the slices are small enough for that to fit into the time of a slice
+          const started = [];
+          const settled = await Promise.allSettled(
+            jobs.map(([, run], i) => {
+              const p = Promise.resolve(attempt > 0 && i === 1 ? started[0].then(run, run) : run());
+              started.push(p.catch(() => {}));
+              return p;
+            }),
+          );
+          const failures = [];
+          settled.forEach((r, i) => {
+            if (r.status === "fulfilled") read[jobs[i][0]] = r.value;
+            else failures.push(`- ${jobs[i][0]}: ${String(r.reason && r.reason.message ? r.reason.message : r.reason)}`);
+          });
+          if (failures.length) throw new Error(`Slice ${slice} of ${plan.slices.length} could not read everything (attempt ${attempt + 1}):\n${failures.join("\n")}`);
+
+          // distinct artifacts per (metric key, artifact type); a token is a maximal run of key characters. Only metric keys that are billable
+          // are kept: the dashboard only looks at those. Each artifact is in one slice only, so the slices' counts add up.
+          const TOKEN = /[A-Za-z0-9_.\-]+/g;
+          const used = new Map();
+          const scope = new Map();
+          const dimUse = new Map();
+          const addTo = (map, k, id) => {
+            if (!map.has(k)) map.set(k, new Set());
+            map.get(k).add(id);
+          };
+          let skipped = 0;
+          const analysed = new Map();
+          for (const r of rows) {
+            if (isAnalysisQuery(r.query)) {
+              skipped++;
+              continue;
+            }
+            let an = analysed.get(r.query);
+            if (!an) {
+              const discoveryKey = r.query.match(DISCOVERY)?.[1]; // dimension discovery of one key does not count as use of it
+              const tokens = new Set(r.query.match(TOKEN) ?? []);
+              const dims = [...tokens].filter((x) => dimFields.has(x) && !billableKeys.has(x));
+              an = {
+                dims,
+                keys: [...tokens].filter((token) => !(token === discoveryKey || token.length > MAX_TOKEN_LENGTH || !/[A-Za-z_]/.test(token)) && billableKeys.has(token)),
+              };
+              analysed.set(r.query, an);
+            }
+            for (const token of an.keys) {
+              addTo(used, `${token}\u0000${r.kind}`, r.id);
+              addTo(scope, `${token}\u0000${r.kind}\u0000${an.dims.length ? "specific-dimensions" : "all-series"}`, r.id);
+              for (const d of an.dims) addTo(dimUse, `${token}\u0000${d}`, r.id);
+            }
+          }
+          // the keys that unparsable documents name (read as plain text): used, in the scope all series
+          for (const r of rawRows) {
+            for (const token of r.keys) {
+              addTo(used, `${token}\u0000${r.kind}`, r.id);
+              addTo(scope, `${token}\u0000${r.kind}\u0000all-series`, r.id);
+            }
+          }
+          console.log(`slice ${slice} of ${N}${mode ? ` (read again, ${mode === "notebook" ? "notebook " + onlyId : "all but the notebooks"})` : ""}, attempt ${attempt + 1}: ${read.dashboards} dashboards, ${read.notebooks} notebooks, ${read.workflows} workflows, ${read.slos} SLOs, ${read.classicSlos} classic SLOs and ${read.anomalyDetectors} anomaly detectors read in ${Math.round((Date.now() - t0) / 100) / 10} s` + (largeDocuments.length ? `. Large documents (read as text): ${largeDocuments.join("; ")}` : "") + `. Memory held by documents at most: ${Math.round(held.peak / 1e5) / 10} MB` + (unparsed.length ? `. ${unparsed.length} document(s) could not be parsed and were read as plain text (see the UNPARSED lines)` : ""));
+          return {
+            slice,
+            mode: mode || undefined,
+            docId: onlyId || undefined, // the notebook of a one-notebook read: the step classify tells a notebook that did not come back from the ones that did
             sliceCount: N,
             read,
             queryStrings: rows.length,
@@ -2213,6 +3071,7 @@ tasks:
             // a result that reaches the byte limit is cut off by the platform without an error: the words are measured, and a result near the limit counts as too large
             let wordBytes = 0;
             for (const rec of recs) for (const w of arr(rec.tokens)) wordBytes += String(w).length + 4;
+            ctx.peakBytes = Math.max(ctx.peakBytes, wordBytes); // the largest read of the slice, for the log: how near it came to the limit
             if (wordBytes >= TOKENS_MAX_BYTES * 0.85) {
               throw Object.assign(new Error(`the executed queries of this slice are about ${fmtCount(wordBytes)} bytes of words, near the limit of ${fmtCount(TOKENS_MAX_BYTES)} that one slice may read, so the result may have been cut off`), { overflow: true });
             }
@@ -2234,6 +3093,32 @@ tasks:
           ctx.queries += recs.length;
         }
 
+        /**
+         * A look at the range before the long read, only for the log: how many executed queries it has and how long the longest text is. If the read fails (the platform
+         * often says only "N retry attempts failed"), this line, written before the read, is what tells whether very long texts were in the range. It never fails the
+         * slice and waits at most 15 s: a range that cannot be looked at is logged as such.
+         */
+        async function logRangeCheck(slice, total, spec) {
+          const query = `fetch dt.system.events, from: ${at(spec.from)}, to: ${at(spec.to)}
+        | filter event.kind == "QUERY_EXECUTION_EVENT" and isNotNull(query_string)
+        | summarize events = count(), longest = max(stringLength(query_string)), over100k = countIf(stringLength(query_string) > 100000), over30k = countIf(stringLength(query_string) > 30000)`;
+          let timer;
+          try {
+            const rows = await Promise.race([
+              queryUntil(query, 5, 1000000),
+              new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error("no answer within 15 s")), 15000);
+              }),
+            ]);
+            const r = rows[0] || {};
+            console.log(`read_history: slice ${slice + 1} of ${total} range check: ${fmtCount(r.events)} executed queries, longest text ${fmtCount(r.longest)} characters, ${fmtCount(r.over30k)} over 30,000 and ${fmtCount(r.over100k)} over 100,000 characters`);
+          } catch (e) {
+            console.log(`read_history: slice ${slice + 1} of ${total} range check not available (${String(e && e.message ? e.message : e).slice(0, 120)})`);
+          } finally {
+            clearTimeout(timer);
+          }
+        }
+
         export default async function () {
           const t0 = Date.now();
           const ex = await actionExecution();
@@ -2244,6 +3129,7 @@ tasks:
           const total = plan.historySlices.length;
           const label = `History slice ${slice + 1} of ${total} (${fmtTime(spec.from)} to ${fmtTime(spec.to)})`;
           console.log(`read_history: slice ${slice + 1} of ${total}, ${fmtTime(spec.from)} to ${fmtTime(spec.to)}`);
+          await logRangeCheck(slice, total, spec);
           // the metrics that are analysed: the largest by data points, chosen once by the step select_metrics (the same list for every step)
           const selected = await result("select_metrics");
           if (!selected || !Array.isArray(selected.keys) || !selected.keys.length) throw new Error(`${label}: the step select_metrics returned no list of metrics`);
@@ -2252,7 +3138,7 @@ tasks:
           // the names of the dimensions are read next to the first query of the words (a failure of them is raised where they are needed, and by the check below)
           const dimNamesP = timed("fields", sliceQuery(FIELDS_QUERY, FIELDS_MAX, "dimension names")).then((rows) => new Set(rows.map((r) => str(r.dim)).filter(Boolean)));
           dimNamesP.catch(() => {});
-          const ctx = { cuts: plan.historyCuts, keys: new Set(selected.keys), dimNames: dimNamesP, splits: 0, queries: 0, acc: newCounts() };
+          const ctx = { cuts: plan.historyCuts, keys: new Set(selected.keys), dimNames: dimNamesP, splits: 0, queries: 0, peakBytes: 0, acc: newCounts() };
           try {
             await timed("tokens", countRange(spec.from, spec.to, 0, ctx));
             await dimNamesP;
@@ -2287,8 +3173,8 @@ tasks:
             throw new Error(`${label}: the counts of this slice are ${fmtCount(packed.data.length)} bytes packed, more than the ${fmtCount(plan.historyBytesPerSlice)} that one slice may hand over (one slice result is refused above about 6.5 MB). This part of the history has very many metrics and dimensions named together by its queries. Try the input historyDays with a shorter time, or send this message to the workflow owner.`);
           }
           const seconds = Math.round((Date.now() - t0) / 100) / 10;
-          console.log(`read_history: slice ${slice + 1} of ${total} done in ${seconds} s: ${fmtCount(ctx.queries)} distinct queries${ctx.splits ? ` (range cut in halves ${ctx.splits} time${ctx.splits === 1 ? "" : "s"})` : ""}, ${fmtCount(runs.length)} metrics with runs, ${fmtCount(pairs.length / 3)} metric and dimension pairs, ${fmtCount(packed.data.length)} bytes packed`);
-          return { slice, sliceCount: total, from: spec.from, to: spec.to, queries: ctx.queries, splits: ctx.splits, runs: runs.length, spec: specific.length, dims: pairs.length / 3, bytes: packed.data.length, times, seconds, packed };
+          console.log(`read_history: slice ${slice + 1} of ${total} done in ${seconds} s: ${fmtCount(ctx.queries)} distinct queries${ctx.splits ? ` (range cut in halves ${ctx.splits} time${ctx.splits === 1 ? "" : "s"})` : ""}, ${fmtCount(runs.length)} metrics with runs, ${fmtCount(pairs.length / 3)} metric and dimension pairs, ${fmtCount(packed.data.length)} bytes packed, largest read ${(ctx.peakBytes / 1e6).toFixed(1)} MB of words (${Math.round((100 * ctx.peakBytes) / TOKENS_MAX_BYTES)}% of the ${TOKENS_MAX_BYTES / 1e6} MB limit)`);
+          return { slice, sliceCount: total, from: spec.from, to: spec.to, queries: ctx.queries, peakWordBytes: ctx.peakBytes, splits: ctx.splits, runs: runs.length, spec: specific.length, dims: pairs.length / 3, bytes: packed.data.length, times, seconds, packed };
         }
 
   query_history:
@@ -2570,6 +3456,7 @@ tasks:
           // what the slices hand over together has to stay within what a loop result is known to carry
           const totalBytes = [...bySlice.values()].reduce((a, r) => a + (Number(r.bytes) || 0), 0);
           const maxTotal = Number(plan.historyTotalBytes) || 0;
+          const peakRead = [...bySlice.values()].reduce((a, r) => Math.max(a, Number(r.peakWordBytes) || 0), 0); // the largest read of any slice (the read limit is 14 MB, see read_history)
           if (maxTotal && totalBytes > maxTotal) {
             const big = [...bySlice.values()].filter((r) => (Number(r.bytes) || 0) > 500000).length;
             throw new Error(`the counts of all ${ids.length} history slices are ${totalBytes.toLocaleString("en-US")} bytes together, more than the ${maxTotal.toLocaleString("en-US")} that the slices may hand over together (${big} of them are larger than 500,000 bytes: parts of the history in which queries name very many metrics and dimensions). Nothing was analysed. Try the input historyDays with fewer days, or send this message to the workflow owner.`);
@@ -2664,8 +3551,25 @@ tasks:
           }
           if (lines.length > MAX_HISTORY_LINES) throw new Error(`the query history is too large to ingest: ${lines.length} lines (limit ${MAX_HISTORY_LINES})`);
           const ingested = DRY_RUN ? 0 : await ingestParallel(lines);
+          // how near the run came to its limits, for the log and for the headroom line of classify
+          const pct = (n, limit) => (limit ? Math.round((100 * n) / limit) : 0);
+          const fmt = (n) => Math.round(Number(n) || 0).toLocaleString("en-US");
+          const headroom = {
+            pairs: pairMask.size,
+            pairsLimit: MAX_HISTORY_PAIRS,
+            handoverBytes: totalBytes,
+            handoverLimit: maxTotal,
+            lines: lines.length,
+            linesLimit: MAX_HISTORY_LINES,
+            mergeSeconds: scanSeconds,
+            mergeSecondsLimit: 120,
+            peakReadBytes: peakRead,
+            peakReadLimit: 14000000,
+          };
+          console.log(`query_history: ${ids.length} history slices handed over ${fmt(totalBytes)} bytes (${pct(totalBytes, maxTotal)}% of ${fmt(maxTotal)}); ${fmt(pairMask.size)} different metric and dimension pairs (${pct(pairMask.size, MAX_HISTORY_PAIRS)}% of ${fmt(MAX_HISTORY_PAIRS)}); ${fmt(lines.length)} lines to ingest (${pct(lines.length, MAX_HISTORY_LINES)}% of ${fmt(MAX_HISTORY_LINES)}); adding up the slices took ${scanSeconds} s (${pct(scanSeconds, 120)}% of the 120 s of a task), the slowest slice ${slowest} s; the largest read of a slice ${(peakRead / 1e6).toFixed(1)} MB of words (${pct(peakRead, 14000000)}% of the 14 MB limit); ${fmt(runs30.length)} metrics with runs in 30 days`);
           return {
             dryRun: DRY_RUN,
+            headroom,
             metricsWithRuns: runs30.length,
             dimensionPairs,
             lines: lines.length,
@@ -3035,8 +3939,14 @@ tasks:
       y: 4
     description: Add the slices up, classify the metrics (with the 30-day query history and the apps that show them) and ingest the usage metrics
     action: dynatrace.automations:run-javascript
+    conditions:
+      states:
+        read_artifacts: ANY
+        rescue_one: ANY
     predecessors:
       - read_artifacts
+      - plan_rescue
+      - rescue_one
       - query_history
       - read_extensions
       - select_metrics
@@ -3317,9 +4227,31 @@ tasks:
           // a slice that was retried leaves an empty entry for its failed attempt: take the one result of every slice, and every slice has to be there
           const bySlice = new Map();
           for (const r of Array.isArray(allReads) ? allReads : []) if (r && typeof r.slice === "number") bySlice.set(r.slice, r);
-          const missing = plan.slices.filter((s) => !bySlice.has(s));
+          // a slice that failed in read_artifacts was read again by plan_rescue and rescue_one: all of it but the notebooks in one piece, and every notebook alone. A notebook
+          // that cannot be read, even alone, is skipped: it is listed here and in the report. Nothing is skipped because of its size, only what really fails.
+          const rescue = await result("plan_rescue");
+          const failedSlices = arr(rescue && rescue.failed);
+          let rescued = [];
+          try {
+            rescued = arr(await result("rescue_one")).filter((r) => r && typeof r.slice === "number");
+          } catch {
+            /* nothing was read again */
+          }
+          const restBySlice = new Map(rescued.filter((r) => r.mode === "rest").map((r) => [r.slice, r]));
+          const noteParts = rescued.filter((r) => r.mode === "notebook");
+          const missing = plan.slices.filter((s) => !bySlice.has(s) && !(failedSlices.includes(s) && restBySlice.has(s)));
           if (missing.length) throw new Error(`no result for slice(s) ${missing.join(", ")} of ${plan.sliceCount}: some artifacts were not read`);
-          const reads = plan.slices.map((s) => bySlice.get(s));
+          const gotNotebooks = new Set(noteParts.map((r) => String(r.docId)));
+          const skippedNotebooks = arr(rescue && rescue.notebooks).filter((nb) => !gotNotebooks.has(String(nb.id)));
+          for (const nb of skippedNotebooks) {
+            console.log(`SKIPPED notebook ${nb.id}${nb.name ? ` ("${nb.name}")` : ""} (slice ${nb.slice}): it could not be read, also when read alone (the task failed or ran out of memory). The metrics that only this notebook uses are not counted as used: check it before you drop a metric.`);
+          }
+          if (failedSlices.length) console.log(`${failedSlices.length} slice(s) of read_artifacts failed (${failedSlices.join(", ")}) and were read again in pieces: ${noteParts.length} notebooks read alone, ${skippedNotebooks.length} skipped.`);
+          const reads = [
+            ...plan.slices.filter((s) => bySlice.has(s)).map((s) => bySlice.get(s)),
+            ...failedSlices.filter((s) => !bySlice.has(s)).map((s) => restBySlice.get(s)),
+            ...noteParts,
+          ];
           // the apps that show a metric (Unified analysis): the slices of the extension reading collected them; every slice must be there and complete
           const uaCount = mergeExtensionSlices(plan, await result("read_extensions"));
 
@@ -3361,7 +4293,7 @@ tasks:
           // every artifact the plan counted has to be accounted for by the slices. Documents are listed by every slice (a few can have been created or
           // deleted during the run); workflows, SLOs and anomaly detectors are fixed by the plan, so their numbers have to match exactly.
           for (const [k, planned] of [["dashboards", plan.dashboards], ["notebooks", plan.notebooks]]) {
-            if (Math.abs(artifacts[k] - planned) > Math.max(5, Math.floor(planned / 100))) throw new Error(`the slices read ${artifacts[k]} ${k}, the plan counted ${planned}: some artifacts were not read`);
+            if (Math.abs(artifacts[k] + (k === "notebooks" ? skippedNotebooks.length : 0) - planned) > Math.max(5, Math.floor(planned / 100))) throw new Error(`the slices read ${artifacts[k]} ${k}, the plan counted ${planned}: some artifacts were not read`);
           }
           for (const [k, planned] of [["workflows", plan.workflows], ["slos", plan.slos], ["classicSlos", plan.classicSlos], ["anomalyDetectors", plan.detectors]]) {
             if (artifacts[k] !== planned) throw new Error(`the slices read ${artifacts[k]} ${k}, the plan counted ${planned}: ${k} changed while the workflow ran, or some were not read. Run the workflow again; nothing was analysed.`);
@@ -3428,6 +4360,12 @@ tasks:
             }
           }
           targets.sort((a, b) => b.dp - a.dp || (a.key < b.key ? -1 : 1)); // largest first: if time runs out later, the small ones are skipped
+          // how near the run came to its limits, for whoever reads the log of a customer run (the numbers come from the step query_history)
+          const hr = hist.headroom;
+          if (hr) {
+            const p = (n, limit) => (limit ? `${Math.round((100 * (Number(n) || 0)) / limit)}%` : "n/a");
+            console.log(`headroom (share of each limit): different metric and dimension pairs ${p(hr.pairs, hr.pairsLimit)}, history hand-over ${p(hr.handoverBytes, hr.handoverLimit)}, largest history read ${p(hr.peakReadBytes, hr.peakReadLimit)}, adding up the history ${p(hr.mergeSeconds, hr.mergeSecondsLimit)} of the time of a task, lines to ingest ${p(hr.lines, hr.linesLimit)}; ${plan.sliceCount} artifact slices, ${skippedNotebooks.length} notebook(s) skipped`);
+          }
           return {
             metric: METRIC,
             dryRun: DRY_RUN,
@@ -3437,6 +4375,7 @@ tasks:
             queryStrings,
             analysisQueriesSkipped: skipped,
             unparsedDocuments: { count: unparsedCount, items: unparsed }, // documents whose text could not be parsed: read as plain text, their keys count as used
+            skippedDocuments: { count: skippedNotebooks.length, items: skippedNotebooks.slice(0, 50).map((nb) => ({ kind: "notebook", id: str(nb.id), name: str(nb.name) })) }, // notebooks that could not be read, also alone: skipped, the report says so
             series: lines.length,
             linesIngested: ok,
             unusedDimensionMetrics: targets.length,
@@ -5007,9 +5946,11 @@ tasks:
             if (snap && Number(snap.skippedTooLargeCount) > 0) skippedTooLarge = { count: Number(snap.skippedTooLargeCount), keys: arr(snap.skippedTooLarge).slice(0, 3).map((x) => str(x.key)) };
           } catch { /* none */ }
           let unparsedDocuments = 0; // dashboards and notebooks whose stored text could not be parsed: they were read as plain text
+          let skippedDocuments = { count: 0, items: [] }; // notebooks that could not be read, also when read alone: skipped, the report says so
           try {
             const cls = await result("classify");
             unparsedDocuments = Number(cls && cls.unparsedDocuments && cls.unparsedDocuments.count) || 0;
+            if (cls && cls.skippedDocuments) skippedDocuments = { count: Number(cls.skippedDocuments.count) || 0, items: arr(cls.skippedDocuments.items).slice(0, 10).map((d) => ({ id: str(d.id), name: str(d.name) })) };
           } catch { /* none */ }
           // the metrics that were analysed: the largest by data points (select_metrics); more of them on the tenant than the limit is what the report says
           let analysis = { cut: false, limit: 0, totalMetrics: 0, analyzedMetrics: 0, totalDp: 0, analyzedDp: 0, sharePct: 100 };
@@ -5116,6 +6057,7 @@ tasks:
               partial: part,
               coverage,
               unparsedDocuments,
+              skippedDocuments,
               skippedTooLarge,
               analysis,
               total: Math.round(total),
@@ -5321,6 +6263,12 @@ tasks:
             ? `This tenant is too large to analyse every metric in one run. ${n.dimMetrics} metrics have unused dimensions. The saving was estimated for the largest ${n.coverage.analysed} of them, which hold ${n.coverage.pct}% of the data points of these metrics. The other ${Math.max(n.dimMetrics - n.coverage.analysed, 0)} are not included, so the real saving can be higher.`
             : "";
           // dashboards and notebooks whose stored text could not be parsed (empty, cut off or damaged) were read as plain text: every metric they name counts as used
+          // notebooks that could not be read, also when read alone: the run went on without them (italic note below). Their names are cleaned of the characters that mark italics.
+          const sk = n.skippedDocuments && Number(n.skippedDocuments.count) > 0 ? n.skippedDocuments : null;
+          const plain = (s) => String(s || "").replace(/[*_`\\\[\]]/g, " ").replace(/\s+/g, " ").trim();
+          const skippedNote = sk
+            ? `${sk.count} notebook${sk.count === 1 ? " was" : "s were"} skipped because ${sk.count === 1 ? "it" : "they"} could not be read (the task that reads ${sk.count === 1 ? "it" : "them"} failed or ran out of memory): ${sk.items.map((d) => `"${plain(d.name) || "unnamed"}" (${d.id})`).join(", ")}${sk.count > sk.items.length ? ", ..." : ""}. Metrics that only ${sk.count === 1 ? "this notebook uses" : "these notebooks use"} can appear as unused in this report: check ${sk.count === 1 ? "it" : "them"} before you drop a metric.`
+            : "";
           const unparsedNote = Number(n.unparsedDocuments) > 0
             ? `${n.unparsedDocuments} dashboard${n.unparsedDocuments === 1 ? "" : "s"} or notebook${n.unparsedDocuments === 1 ? "" : "s"} could not be parsed (their stored content is empty, cut off or damaged). ${n.unparsedDocuments === 1 ? "It was" : "They were"} read as plain text instead, so every metric ${n.unparsedDocuments === 1 ? "it names" : "they name"} counts as used. The log of the step read_artifacts lists ${n.unparsedDocuments === 1 ? "it" : "them"} by name.`
             : "";
@@ -5367,7 +6315,7 @@ tasks:
 
         **How:** take one metric at a time. Ask Assist **"Analyze cardinality for \`<key>\`"**, then consider dropping only the dimensions that are confirmed unused.${data.dimTable ? " Start with the largest:\n\n" + data.dimTable : ""}
 
-        _Estimates from the last 30 days.${aiUsed ? "" : ` The summary text comes from a template because the AI step did not run${aiNote ? ` (${aiNote})` : ""}.`}_${coverage ? `\n\n*${coverage}*` : ""}${unparsedNote ? `\n\n*${unparsedNote}*` : ""}${tooLarge ? `\n\n*${tooLarge}*` : ""}
+        _Estimates from the last 30 days.${aiUsed ? "" : ` The summary text comes from a template because the AI step did not run${aiNote ? ` (${aiNote})` : ""}.`}_${coverage ? `\n\n*${coverage}*` : ""}${skippedNote ? `\n\n*${skippedNote}*` : ""}${unparsedNote ? `\n\n*${unparsedNote}*` : ""}${tooLarge ? `\n\n*${tooLarge}*` : ""}
         `;
           return { aiUsed, summaryFromTemplate, subject: `You can reduce metrics ingest cost by ${atLeast}${headlinePct}%`, markdown: body, dashboard };
         }
@@ -5787,13 +6735,13 @@ tasks:
     position:
       x: 3
       y: 7
-    description: Tell the recipient that no report was produced (runs only if read_artifacts fails)
+    description: Tell the recipient that no report was produced (runs only if plan_rescue fails)
     action: dynatrace.email:send-email
     conditions:
       states:
-        read_artifacts: ERROR
+        plan_rescue: ERROR
     predecessors:
-      - read_artifacts
+      - plan_rescue
     input:
       to:
         - '{{ input()["emails"]["to"] }}'
@@ -5801,7 +6749,7 @@ tasks:
       bcc: []
       subject: 'The metrics optimization report was not produced'
       content: |-
-        The metrics optimization workflow could not produce a report (step: read_artifacts). If the log of the step says "Execution ran out of memory", a very large notebook or dashboard (tens of MB, usually a notebook with cached results) is the usual cause; the log of a retried slice lists the large documents it read.
+        The metrics optimization workflow could not produce a report (step: read_artifacts). A slice that fails is read again in smaller pieces, and a notebook that cannot be read is skipped and named in the report; this email means that so many slices failed (more than 5) that they could not be read again, or that the failed step is the one that prepares this second reading. The log of the step read_artifacts says why the slices failed.
 
         Every artifact (dashboard, notebook, workflow, SLO and anomaly detector) and the 30-day query history has to be read: otherwise a metric that is in use could be reported as unused, so the workflow stops instead of guessing. Typical causes are a missing permission (the workflow's user needs document admin access to read other users' artifacts), a throttled API, or a temporary platform problem.
 

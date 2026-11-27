@@ -6,7 +6,7 @@ also_includes: [Dashboard]
 tags: [metrics, cost-optimization, finops, ingest, dimensions, dps, unused-metrics]
 verticals: []
 capabilities: [Workflows, Grail, DQL, Dashboards, Dynatrace Assist, Email]
-last_updated: 2026-11-26
+last_updated: 2026-11-27
 ---
 
 # Optimize metrics ingest cost
@@ -39,7 +39,7 @@ The workflow reads your tenant and reports. It does not change your metric inges
 4. **Estimate.** For unused metrics and unused dimensions, it estimates the saving in series and in data points from the last 30 days.
 5. **Report.** It creates or updates the dashboard **Metrics optimization candidates** and emails a summary written by Dynatrace Intelligence.
 
-The workflow reads every artifact or stops with an error. It never reports from a partial read.
+The workflow reads every dashboard, notebook, workflow, SLO and anomaly detector, or stops with an error. If part of the reading fails (a very large notebook can run a step out of memory), that part is read again in smaller pieces. A notebook that cannot be read even on its own is skipped, and the report names it in an italic note, so that you can check it before you drop a metric that only it may use.
 
 ## Prerequisites
 
@@ -109,7 +109,7 @@ The email contains:
 - **A link to the dashboard.**
 - **Unused metrics, to drop first.** The 10 largest unused metrics and the share of data points that dropping them saves, with the Dynatrace Assist prompt to use for each one.
 - **Unused dimensions, to go carefully.** Why caution is needed, how to proceed one metric at a time, and the metrics with the largest estimated saving. Dropping a dimension merges series, which can change averages and counts.
-- **Notes at the end.** What the estimates are based on, and any metrics that were too large to estimate, whose saving is therefore not included.
+- **Notes at the end.** What the estimates are based on, any metrics that were too large to estimate (their saving is not included), and any notebooks that were skipped because they could not be read.
 
 Savings are estimates from the last 30 days of data points. Check with the owners of the sources that nothing outside Dynatrace reads a metric before you drop it.
 
@@ -140,6 +140,8 @@ Review each recommendation before you apply a change to your tenant. Dropping a 
 | No email permission | No email can be sent. Look at the run in the Workflows app. |
 | No AI permission, or the AI step fails | The report is still sent, with a template summary instead of the AI text. |
 | A step fails | The run ends in Error, and an email names the failed stage and the reason. |
+| Part of the reading of dashboards, notebooks or workflows fails | The failed part is read again in smaller pieces, and the report is still sent. A notebook that cannot be read even alone is skipped and named in an italic note at the end of the email. If more than 5 parts fail, the run stops with an email. |
+| You need to find out why a run failed or came close to a limit | Open the run in the Workflows app and read the log of the failed step. `read_history` logs a range check before each part of the query history; `query_history` and `classify` log how near the run came to each limit (for example "different metric and dimension pairs 2%"). |
 | The tenant is larger than one run can handle | The run stops before the long reading, and the error says which kind of artifact is over its limit, by how much, and what to do. |
 | A dashboard or notebook cannot be parsed | It is read as plain text, so its metric keys still count as used. The report lists it by id and name. |
 
